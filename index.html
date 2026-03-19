@@ -11,7 +11,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getFirestore, collection, addDoc, updateDoc, deleteDoc,
-    doc, onSnapshot, query, orderBy, serverTimestamp
+    doc, onSnapshot, query, orderBy, serverTimestamp, setDoc, getDoc
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   // ══════════════════════════════════════════════════════════════
@@ -34,7 +34,7 @@
   window._fb = {
     db,
     collection, addDoc, updateDoc, deleteDoc,
-    doc, onSnapshot, query, orderBy, serverTimestamp
+    doc, onSnapshot, query, orderBy, serverTimestamp, setDoc, getDoc
   };
   window._fbReady = true;
   document.dispatchEvent(new Event('fb-ready'));
@@ -724,7 +724,87 @@ input::placeholder, textarea::placeholder { color:var(--text2); opacity:.6 }
 @keyframes load-anim{to{width:100%}}
 .loading-sub { font-size:11px; color:var(--text2); letter-spacing:2px }
 
-@media(max-width:900px){
+/* ── CONFIG PANEL ────────────────────────────────────── */
+.config-panel {
+  position: fixed;
+  top: 56px; right: 0;
+  width: 420px;
+  height: calc(100vh - 56px);
+  background: var(--surface2);
+  border-left: 1px solid var(--border2);
+  border-top: 2px solid var(--amber);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .25s ease;
+  box-shadow: -8px 0 32px rgba(0,0,0,.4);
+}
+.config-panel.open { transform: translateX(0) }
+.config-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.config-title {
+  font-family: var(--sans); font-size: 16px; font-weight: 700;
+  letter-spacing: 3px; color: var(--amber);
+}
+.config-close {
+  background: transparent; border: none; color: var(--text2);
+  font-size: 18px; cursor: pointer; padding: 4px 8px;
+  border-radius: var(--radius); transition: all .1s;
+}
+.config-close:hover { background: var(--red-g); color: var(--red) }
+.config-tabs {
+  display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.cfg-tab {
+  flex: 1; padding: 10px 4px;
+  background: transparent; border: none;
+  color: var(--text2); font-family: var(--sans);
+  font-size: 11px; font-weight: 600; letter-spacing: 1px;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all .15s; text-transform: uppercase;
+}
+.cfg-tab.active { color: var(--amber); border-bottom-color: var(--amber) }
+.cfg-tab:hover { color: var(--white) }
+.config-body { flex: 1; overflow-y: auto; padding: 16px 20px }
+.cfg-list-wrap { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px }
+.cfg-item {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(0,0,0,.2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 8px 10px;
+  transition: border-color .1s;
+}
+.cfg-item:hover { border-color: var(--border2) }
+.cfg-item-name { flex: 1; font-size: 13px; color: var(--text) }
+.cfg-item-del {
+  background: transparent; border: none; color: var(--text2);
+  cursor: pointer; font-size: 14px; padding: 2px 6px;
+  border-radius: 2px; transition: all .1s;
+}
+.cfg-item-del:hover { background: var(--red-g); color: var(--red) }
+.cfg-add-row { display: flex; gap: 8px; margin-top: 4px }
+.cfg-add-row input { flex: 1 }
+.cfg-add-btn {
+  padding: 7px 14px; background: var(--amber); border: none; color: #000;
+  font-family: var(--sans); font-size: 13px; font-weight: 700;
+  cursor: pointer; border-radius: var(--radius); white-space: nowrap;
+  transition: background .15s;
+}
+.cfg-add-btn:hover { background: #ffc040 }
+.cfg-section-label {
+  font-family: var(--sans); font-size: 11px; font-weight: 600;
+  letter-spacing: 2px; color: var(--text2); text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.cfg-empty {
+  text-align: center; padding: 24px; color: var(--text2); font-size: 12px;
+}
+@media(max-width:500px){ .config-panel{ width:100% } }
+
   .kpi-grid{ grid-template-columns:1fr 1fr }
   .dash-grid-2{ grid-template-columns:1fr }
   .fg-4{ grid-template-columns:1fr 1fr }
@@ -766,8 +846,34 @@ input::placeholder, textarea::placeholder { color:var(--text2); opacity:.6 }
     <div class="role-badge viewer" id="role-badge" onclick="openRoleModal()">
       👁 VISUALIZADOR
     </div>
+    <button id="btn-config" onclick="openConfig()" style="display:none;padding:6px 10px;background:var(--amber-g);border:1px solid var(--amber-d);color:var(--amber);font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:1px;cursor:pointer;border-radius:var(--radius)">⚙ CONFIG</button>
   </div>
 </header>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  PANEL: CONFIGURACIÓN                                  -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="config-panel" id="config-panel">
+  <div class="config-header">
+    <div class="config-title">⚙ CONFIGURACIÓN</div>
+    <button class="config-close" onclick="closeConfig()">✕</button>
+  </div>
+  <div class="config-tabs">
+    <button class="cfg-tab active" data-list="solicitantes">SOLICITANTES</button>
+    <button class="cfg-tab" data-list="areas">ÁREAS</button>
+    <button class="cfg-tab" data-list="disciplinas">DISCIPLINAS</button>
+    <button class="cfg-tab" data-list="responsables">RESPONSABLES</button>
+    <button class="cfg-tab" data-list="tipos">TIPOS</button>
+  </div>
+  <div class="config-body">
+    <div class="cfg-section-label" id="cfg-current-label">Solicitantes</div>
+    <div class="cfg-list-wrap" id="cfg-list"></div>
+    <div class="cfg-add-row">
+      <input id="cfg-new-val" type="text" placeholder="Agregar nuevo valor..." onkeydown="if(event.key==='Enter')cfgAdd()">
+      <button class="cfg-add-btn" onclick="cfgAdd()">+ AGREGAR</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <!--  PAGE: BITÁCORA                                        -->
@@ -953,43 +1059,18 @@ input::placeholder, textarea::placeholder { color:var(--text2); opacity:.6 }
           <label>Área / Unidad *</label>
           <select id="f-area">
             <option value="">— Seleccionar —</option>
-            <option>Chancado</option>
-            <option>Molienda</option>
-            <option>Flotación</option>
-            <option>Planta Molibdeno</option>
-            <option>Relaves y Concentraducto</option>
-            <option>DRR</option>
-            <option>Muelle</option>
-            <option>SIAM</option>
-            <option>Otro</option>
           </select>
         </div>
         <div class="field">
           <label>Disciplina *</label>
           <select id="f-disciplina">
             <option value="">— Seleccionar —</option>
-            <option>Electricidad</option>
-            <option>Instrumentación</option>
-            <option>DCS</option>
-            <option>Mecánicos</option>
-            <option>Metalurgia</option>
-            <option>GP</option>
-            <option>Operaciones</option>
-            <option>Planificación</option>
-            <option>Otro</option>
           </select>
         </div>
         <div class="field">
           <label>Tipo de señal</label>
           <select id="f-tipo">
             <option value="">— —</option>
-            <option>AI</option><option>AO</option>
-            <option>DI</option><option>DO</option>
-            <option>Lazo PID</option>
-            <option>Setpoint</option>
-            <option>Permisivo</option>
-            <option>Enclavamiento</option>
-            <option>Otro</option>
           </select>
         </div>
         <div class="field">
@@ -1220,12 +1301,166 @@ function setRole(role){
   badge.className = 'role-badge ' + (isEditor ? 'editor' : 'viewer');
   document.getElementById('btn-new').style.display = isEditor ? 'block' : 'none';
   document.getElementById('col-acc').style.display = isEditor ? '' : 'none';
+  document.getElementById('btn-config').style.display = isEditor ? 'block' : 'none';
+  if(!isEditor) closeConfig();
   document.getElementById('modal-role').classList.remove('open');
   hidePinInput();
   render();
   toast(isEditor ? 'Modo EDITOR activado' : 'Modo VISUALIZADOR activado',
         isEditor ? 'var(--amber)' : 'var(--blue)');
 }
+
+// ── Config Panel ───────────────────────────────────────
+const CFG_DEFAULTS = {
+  solicitantes: [],
+  areas: ['Chancado','Molienda','Flotación','Planta Molibdeno','Relaves y Concentraducto','DRR','Muelle','SIAM'],
+  disciplinas: ['Electricidad','Instrumentación','DCS','Mecánicos','Metalurgia','GP','Operaciones','Planificación'],
+  responsables: [],
+  tipos: ['AI','AO','DI','DO','Lazo PID','Setpoint','Permisivo','Enclavamiento']
+};
+let cfgLists = { ...CFG_DEFAULTS };
+let cfgActiveList = 'solicitantes';
+const CFG_LABELS = {
+  solicitantes:'Solicitantes', areas:'Áreas', disciplinas:'Disciplinas',
+  responsables:'Responsables', tipos:'Tipos de señal'
+};
+
+function openConfig(){
+  if(!isEditor){ toast('Se requiere modo EDITOR','var(--red)'); return }
+  document.getElementById('config-panel').classList.add('open');
+  loadCfgFromFirebase();
+}
+function closeConfig(){
+  document.getElementById('config-panel').classList.remove('open');
+}
+
+// Load config lists from Firebase
+async function loadCfgFromFirebase(){
+  if(!fbReady) return;
+  const { db, doc, getDoc } = window._fb;
+  try {
+    const snap = await getDoc(doc(db,'_config','listas'));
+    if(snap.exists()){
+      const data = snap.data();
+      Object.keys(CFG_DEFAULTS).forEach(k => {
+        if(data[k] && data[k].length) cfgLists[k] = data[k];
+      });
+    }
+  } catch(e){ console.warn('Config load error:',e) }
+  renderCfgList();
+  populateFormSelects();
+}
+
+// Save config lists to Firebase
+async function saveCfgToFirebase(){
+  if(!fbReady) return;
+  const { db, doc, setDoc } = window._fb;
+  try {
+    await setDoc(doc(db,'_config','listas'), cfgLists);
+  } catch(e){ console.warn('Config save error:',e) }
+  populateFormSelects();
+}
+
+// Tab switching
+document.querySelectorAll('.cfg-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    cfgActiveList = tab.dataset.list;
+    document.getElementById('cfg-current-label').textContent = CFG_LABELS[cfgActiveList];
+    document.getElementById('cfg-new-val').value = '';
+    renderCfgList();
+  });
+});
+
+function renderCfgList(){
+  const list = cfgLists[cfgActiveList] || [];
+  const wrap = document.getElementById('cfg-list');
+  if(!list.length){
+    wrap.innerHTML = '<div class="cfg-empty">Sin valores — agrega el primero</div>';
+    return;
+  }
+  wrap.innerHTML = list.map((v,i) => `
+    <div class="cfg-item">
+      <span class="cfg-item-name">${v}</span>
+      <button class="cfg-item-del" onclick="cfgDelete(${i})" title="Eliminar">✕</button>
+    </div>`).join('');
+}
+
+function cfgAdd(){
+  const val = document.getElementById('cfg-new-val').value.trim();
+  if(!val){ toast('Escribe un valor primero','var(--red)'); return }
+  if(cfgLists[cfgActiveList].includes(val)){ toast('Ya existe ese valor','var(--amber)'); return }
+  cfgLists[cfgActiveList].push(val);
+  document.getElementById('cfg-new-val').value = '';
+  renderCfgList();
+  saveCfgToFirebase();
+  toast('Valor agregado ✓');
+}
+
+function cfgDelete(idx){
+  cfgLists[cfgActiveList].splice(idx, 1);
+  renderCfgList();
+  saveCfgToFirebase();
+  toast('Valor eliminado','var(--red)');
+}
+
+// Populate all form selects with config lists
+function populateFormSelects(){
+  const selMap = {
+    'f-area':       cfgLists.areas,
+    'f-disciplina': cfgLists.disciplinas,
+    'f-tipo':       cfgLists.tipos,
+    'f-oper':       null, // text input — convert to select
+    'f-responsable':null,
+  };
+  // Areas
+  setSelectOptions('f-area', cfgLists.areas);
+  setSelectOptions('f-disciplina', cfgLists.disciplinas);
+  setSelectOptions('f-tipo', cfgLists.tipos);
+  // Convert text inputs to selects for solicitante and responsable
+  convertToSelect('f-oper', cfgLists.solicitantes, 'Seleccionar solicitante...');
+  convertToSelect('f-responsable', cfgLists.responsables, 'Seleccionar responsable...');
+}
+
+function setSelectOptions(id, list){
+  const sel = document.getElementById(id);
+  if(!sel || sel.tagName !== 'SELECT') return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Seleccionar —</option>' +
+    list.map(v => `<option${v===current?' selected':''}>${v}</option>`).join('') +
+    '<option value="__otro__">Otro...</option>';
+}
+
+function convertToSelect(id, list, placeholder){
+  const el = document.getElementById(id);
+  if(!el) return;
+  if(el.tagName === 'SELECT'){
+    setSelectOptions(id, list);
+    return;
+  }
+  // Replace input with select
+  const sel = document.createElement('select');
+  sel.id = id;
+  sel.style.cssText = el.style.cssText;
+  sel.className = el.className;
+  if(list.length === 0){
+    sel.innerHTML = `<option value="">— Sin valores configurados —</option><option value="__otro__">Escribir manualmente...</option>`;
+  } else {
+    sel.innerHTML = `<option value="">— ${placeholder} —</option>` +
+      list.map(v => `<option>${v}</option>`).join('') +
+      '<option value="__otro__">Otro...</option>';
+  }
+  sel.addEventListener('change', function(){
+    if(this.value === '__otro__'){
+      const txt = prompt('Ingresa el valor:');
+      if(txt){ this.innerHTML += `<option value="${txt}" selected>${txt}</option>`; this.value = txt; }
+      else { this.value = '' }
+    }
+  });
+  el.parentNode.replaceChild(sel, el);
+}
+
 
 // ── Firebase / fallback ────────────────────────────────
 function initFallback(){
@@ -1256,6 +1491,8 @@ function initFirebase(){
       console.warn('Firestore error:', err);
       initFallback();
     });
+    // Load config lists
+    loadCfgFromFirebase();
   } catch(e){ initFallback() }
 }
 
