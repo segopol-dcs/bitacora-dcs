@@ -223,10 +223,11 @@ header {
   transition: all .15s;
   white-space:nowrap;
 }
-.filter-pill.on-forzado  { border-color:var(--amber); color:var(--amber); background:var(--amber-g) }
-.filter-pill.on-liberado { border-color:var(--green); color:var(--green); background:var(--green-g) }
-.filter-pill.on-pendiente{ border-color:var(--red); color:var(--red); background:var(--red-g) }
-.filter-pill.on-all      { border-color:var(--text2); color:var(--white)  }
+.filter-pill.on-temporal   { border-color:var(--blue);  color:var(--blue);  background:var(--blue-g)  }
+.filter-pill.on-programado { border-color:var(--green); color:var(--green); background:var(--green-g) }
+.filter-pill.on-pendiente  { border-color:var(--amber); color:var(--amber); background:var(--amber-g) }
+.filter-pill.on-vencido    { border-color:var(--red);   color:var(--red);   background:var(--red-g)   }
+.filter-pill.on-all        { border-color:var(--text2); color:var(--white)  }
 
 .tb-stats { display:flex; gap:14px; margin-left:auto; flex-shrink:0 }
 .tb-stat  { display:flex; align-items:center; gap:5px; font-size:11px }
@@ -291,9 +292,10 @@ tbody tr {
   transition: background .1s;
 }
 tbody tr:hover { background: rgba(26,125,181,.04) }
-tbody tr.r-forzado  { border-left: 3px solid var(--amber) }
-tbody tr.r-liberado { border-left: 3px solid var(--green) }
-tbody tr.r-pendiente{ border-left: 3px solid var(--red)  }
+tbody tr.r-temporal   { border-left: 3px solid var(--blue)  }
+tbody tr.r-programado { border-left: 3px solid var(--green) }
+tbody tr.r-pendiente  { border-left: 3px solid var(--amber) }
+tbody tr.r-vencido    { border-left: 3px solid var(--red)   }
 
 td {
   padding: 9px 12px;
@@ -314,9 +316,10 @@ td {
   font-family: var(--sans);
   font-weight: 600;
 }
-.b-forzado  { background:#fff3e0; color:#c47e00; border:1px solid #f0c060 }
-.b-liberado { background:#e6f7ee; color:#1a7a4a; border:1px solid #8ed4ae }
-.b-pendiente{ background:#fef0f0; color:var(--red); border:1px solid #f0a0a0 }
+.b-temporal   { background:#e6f2fa; color:#1a6090; border:1px solid #80bce0 }
+.b-programado { background:#e6f7ee; color:#1a7a4a; border:1px solid #8ed4ae }
+.b-pendiente  { background:#fff3e0; color:#c47e00; border:1px solid #f0c060 }
+.b-vencido    { background:#fef0f0; color:var(--red); border:1px solid #f0a0a0 }
 
 .act-btn {
   background:transparent; border:none; cursor:pointer;
@@ -452,9 +455,10 @@ input::placeholder, textarea::placeholder { color:var(--text2); opacity:.6 }
   transition:all .15s;
   text-align:center;
 }
-.est-btn.sel-forzado  { border-color:var(--amber); background:#fff8e6; color:var(--amber-d) }
-.est-btn.sel-liberado { border-color:var(--green); background:#e8f7ef; color:#1a7a4a }
-.est-btn.sel-pendiente{ border-color:var(--red); background:#fef0f0; color:var(--red) }
+.est-btn.sel-temporal   { border-color:var(--blue);  background:#e6f2fa; color:#1a6090  }
+.est-btn.sel-programado { border-color:var(--green); background:#e8f7ef; color:#1a7a4a }
+.est-btn.sel-pendiente  { border-color:var(--amber); background:#fff8e6; color:var(--amber-d) }
+.est-btn.sel-vencido    { border-color:var(--red);   background:#fef0f0; color:var(--red)  }
 
 /* liberation section */
 .lib-section {
@@ -826,14 +830,15 @@ canvas{flex:1;min-height:0;width:100% !important}
     </div>
 
     <button class="filter-pill on-all" data-f="ALL">TODOS</button>
-    <button class="filter-pill" data-f="FORZADO">⬛ FORZADOS</button>
-    <button class="filter-pill" data-f="LIBERADO">◉ LIBERADOS</button>
-    <button class="filter-pill" data-f="PENDIENTE">◈ RECHAZADOS</button>
+    <button class="filter-pill" data-f="TEMPORAL">● TEMPORAL</button>
+    <button class="filter-pill" data-f="PROGRAMADO">● PROGRAMADO</button>
+    <button class="filter-pill" data-f="PENDIENTE">● PENDIENTE</button>
+    <button class="filter-pill" data-f="VENCIDO">● VENCIDO</button>
 
     <div class="tb-stats">
-      <span class="tb-stat"><span class="tb-dot" style="background:var(--amber)"></span><span id="cnt-f">0</span></span>
-      <span class="tb-stat"><span class="tb-dot" style="background:var(--green)"></span><span id="cnt-l">0</span></span>
-      <span class="tb-stat"><span class="tb-dot" style="background:var(--red)"></span><span id="cnt-p">0</span></span>
+      <span class="tb-stat"><span class="tb-dot" style="background:var(--blue)"></span><span id="cnt-f">0</span> temp.</span>
+      <span class="tb-stat"><span class="tb-dot" style="background:var(--green)"></span><span id="cnt-l">0</span> prog.</span>
+      <span class="tb-stat"><span class="tb-dot" style="background:var(--red)"></span><span id="cnt-p">0</span> pend./venc.</span>
     </div>
 
     <button class="btn-export" onclick="openExport()">⤓ EXPORTAR</button>
@@ -856,7 +861,9 @@ canvas{flex:1;min-height:0;width:100% !important}
           <th data-col="operador">SOLICITANTE ↕</th>
           <th data-col="responsable">RESPONSABLE ↕</th>
           <th data-col="ts">FORZADO ↕</th>
-          <th data-col="ts_lib">LIBERADO</th>
+          <th data-col="ts_norm">F. NORMALIZACIÓN ↕</th>
+          <th data-col="aviso_ot">AVISO/OT SAP</th>
+          <th data-col="resp_norm">RESP. NORMALIZACIÓN ↕</th>
           <th id="col-acc" style="display:none">ACC.</th>
         </tr>
       </thead>
@@ -878,29 +885,29 @@ canvas{flex:1;min-height:0;width:100% !important}
   <!-- ── Fila 1: KPIs ── -->
   <div class="dash-kpi-row">
     <div class="kpi-card kf">
-      <div class="kpi-label">FORZADOS ACTIVOS</div>
+      <div class="kpi-label">TEMPORAL</div>
       <div class="kpi-value" id="d-forzados">0</div>
-      <div class="kpi-sub">en estado FORZADO</div>
+      <div class="kpi-sub">sin fecha normalización &lt;48h</div>
     </div>
     <div class="kpi-card kl">
-      <div class="kpi-label">LIBERADOS</div>
+      <div class="kpi-label">PROGRAMADO</div>
       <div class="kpi-value" id="d-liberados">0</div>
-      <div class="kpi-sub">señales normalizadas</div>
+      <div class="kpi-sub">con fecha normalización</div>
     </div>
     <div class="kpi-card kp">
-      <div class="kpi-label">RECHAZADOS</div>
+      <div class="kpi-label">PENDIENTE</div>
       <div class="kpi-value" id="d-rechazados">0</div>
-      <div class="kpi-sub">solicitud rechazada</div>
+      <div class="kpi-sub">sin fecha y +48h</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:var(--red)">
+      <div class="kpi-label">VENCIDO</div>
+      <div class="kpi-value" id="d-vencido" style="color:var(--red)">0</div>
+      <div class="kpi-sub">fecha normalización superada</div>
     </div>
     <div class="kpi-card kt">
       <div class="kpi-label">TOTAL REGISTROS</div>
       <div class="kpi-value" id="d-total">0</div>
       <div class="kpi-sub">histórico completo</div>
-    </div>
-    <div class="kpi-card" style="border-top-color:var(--blue)">
-      <div class="kpi-label">TIEMPO PROM. NORMALIZ.</div>
-      <div class="kpi-value" id="d-avgtime" style="color:var(--blue);font-size:26px">—</div>
-      <div class="kpi-sub">horas promedio (liberados)</div>
     </div>
   </div>
 
@@ -930,7 +937,7 @@ canvas{flex:1;min-height:0;width:100% !important}
       <div class="donut-wrap" style="justify-content:center;padding-top:8px">
         <svg width="110" height="110" viewBox="0 0 120 120" id="donut-svg">
           <circle cx="60" cy="60" r="46" fill="none" stroke="var(--border)" stroke-width="14"/>
-          <circle id="arc-f" cx="60" cy="60" r="46" fill="none" stroke="var(--amber)" stroke-width="14"
+          <circle id="arc-f" cx="60" cy="60" r="46" fill="none" stroke="var(--blue)" stroke-width="14"
             stroke-dasharray="0 289" stroke-linecap="butt" transform="rotate(-90 60 60)"
             style="transition:stroke-dasharray .5s ease"/>
           <circle id="arc-l" cx="60" cy="60" r="46" fill="none" stroke="var(--green)" stroke-width="14"
@@ -943,9 +950,9 @@ canvas{flex:1;min-height:0;width:100% !important}
           <text x="60" y="70" text-anchor="middle" font-family="Share Tech Mono" font-size="9" fill="var(--text2)">TOTAL</text>
         </svg>
         <div class="donut-legend" style="margin-top:10px">
-          <div class="legend-row"><span class="legend-dot" style="background:var(--amber)"></span><span>Forzados: <strong id="leg-f">0</strong></span></div>
-          <div class="legend-row"><span class="legend-dot" style="background:var(--green)"></span><span>Liberados: <strong id="leg-l">0</strong></span></div>
-          <div class="legend-row"><span class="legend-dot" style="background:var(--red)"></span><span>Rechazados: <strong id="leg-p">0</strong></span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--blue)"></span><span>Temporal: <strong id="leg-f">0</strong></span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--green)"></span><span>Programado: <strong id="leg-l">0</strong></span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--red)"></span><span>Pend./Venc.: <strong id="leg-p">0</strong></span></div>
         </div>
       </div>
     </div>
@@ -990,7 +997,7 @@ canvas{flex:1;min-height:0;width:100% !important}
 <div class="overlay" id="modal-form">
 <div class="modal">
   <div class="modal-header">
-    <div class="modal-title"><span id="modal-mode-label">NUEVO</span> FORZADO</div>
+    <div class="modal-title"><span id="modal-mode-label">NUEVO</span> REGISTRO</div>
     <button class="modal-close" onclick="closeModal()">✕</button>
   </div>
   <div class="modal-body">
@@ -1047,11 +1054,9 @@ canvas{flex:1;min-height:0;width:100% !important}
           </select>
         </div>
         <div class="field">
-          <label>Estado *</label>
-          <div class="estado-group">
-            <button class="est-btn sel-forzado" data-v="FORZADO">FORZADO</button>
-            <button class="est-btn" data-v="LIBERADO">LIBERAD.</button>
-            <button class="est-btn" data-v="PENDIENTE">RECHAZADO</button>
+          <label>Estado</label>
+          <div id="estado-display" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:#f8fafc;font-family:var(--mono);font-size:12px;color:var(--text2)">
+            Se calcula automáticamente
           </div>
         </div>
       </div>
@@ -1079,26 +1084,22 @@ canvas{flex:1;min-height:0;width:100% !important}
       </div>
     </div>
 
-    <!-- LIBERACIÓN -->
+    <!-- NORMALIZACIÓN -->
     <div class="form-section">
       <div class="lib-section">
-        <div class="section-label">◉ Datos de Liberación</div>
+        <div class="section-label">◉ Datos de Normalización</div>
         <div class="form-grid fg-3">
           <div class="field">
-            <label>Quién libera</label>
-            <select id="f-lib-quien">
-              <option value="">— Seleccionar —</option>
-            </select>
+            <label>Fecha Normalización (planificada)</label>
+            <input id="f-ts-norm" type="datetime-local">
           </div>
           <div class="field">
-            <label>Fecha / Hora liberación</label>
-            <input id="f-lib-ts" type="datetime-local">
+            <label>Aviso / OT SAP</label>
+            <input id="f-aviso-ot" type="text" placeholder="Ej: OT-10045678 / AV-20012345">
           </div>
           <div class="field">
-            <label>Observaciones de liberación</label>
-            <select id="f-lib-obs">
-              <option value="">— Seleccionar —</option>
-            </select>
+            <label>Responsable Normalización</label>
+            <input id="f-resp-norm" type="text" placeholder="Nombre del responsable">
           </div>
         </div>
       </div>
@@ -1524,27 +1525,27 @@ function openModal(id = null){
   if(id){
     const r = records.find(x => x._id === id);
     if(!r) return;
-    document.getElementById('f-id').value        = r.id_registro || '';
-    document.getElementById('f-tag').value       = r.tag || '';
-    document.getElementById('f-desc').value      = r.desc || '';
-    document.getElementById('f-causa').value     = r.causa || '';
-    document.getElementById('f-area').value      = r.area || '';
-    document.getElementById('f-disciplina').value= r.disciplina || '';
-    document.getElementById('f-tipo').value      = r.tipo || '';
-    document.getElementById('f-valor').value     = r.valor || '';
-    document.getElementById('f-vorig').value     = r.vorig || '';
-    document.getElementById('f-oper').value      = r.operador || '';
-    document.getElementById('f-responsable').value = r.responsable || '';
-    document.getElementById('f-ts').value        = r.ts || '';
-    document.getElementById('f-equipo').value    = r.equipo || '';
-    // Liberation selects — add value dynamically if not in list
-    setSelectValue('f-lib-quien', r.lib_quien || '');
-    document.getElementById('f-lib-ts').value    = r.lib_ts || '';
-    setSelectValue('f-lib-obs', r.lib_obs || '');
-    setEstado(r.estado || 'FORZADO');
+    document.getElementById('f-id').value           = r.id_registro || '';
+    document.getElementById('f-tag').value          = r.tag || '';
+    document.getElementById('f-desc').value         = r.desc || '';
+    document.getElementById('f-causa').value        = r.causa || '';
+    document.getElementById('f-area').value         = r.area || '';
+    document.getElementById('f-disciplina').value   = r.disciplina || '';
+    document.getElementById('f-tipo').value         = r.tipo || '';
+    document.getElementById('f-valor').value        = r.valor || '';
+    document.getElementById('f-vorig').value        = r.vorig || '';
+    document.getElementById('f-oper').value         = r.operador || '';
+    document.getElementById('f-responsable').value  = r.responsable || '';
+    document.getElementById('f-ts').value           = r.ts || '';
+    document.getElementById('f-equipo').value       = r.equipo || '';
+    document.getElementById('f-ts-norm').value      = r.ts_norm || '';
+    document.getElementById('f-aviso-ot').value     = r.aviso_ot || '';
+    document.getElementById('f-resp-norm').value    = r.resp_norm || '';
+    actualizarEstadoDisplay();
   } else {
     clearForm();
     document.getElementById('f-ts').value = nowLocal();
+    actualizarEstadoDisplay();
   }
   document.getElementById('modal-form').classList.add('open');
 }
@@ -1553,36 +1554,78 @@ function closeModal(){
   editDocId = null;
 }
 
-function setEstado(v){
-  selectedEstado = v;
-  document.querySelectorAll('.est-btn').forEach(b => {
-    b.className = 'est-btn';
-    if(b.dataset.v === v){
-      b.classList.add(v === 'FORZADO' ? 'sel-forzado' : v === 'LIBERADO' ? 'sel-liberado' : 'sel-pendiente');
-    }
-  });
+// ── Calcular estado automáticamente ────────────────────────────
+function calcularEstado(tsCreacion, tsNorm) {
+  const ahora = new Date();
+  // Si tiene fecha de normalización
+  if (tsNorm) {
+    const fechaNorm = new Date(tsNorm);
+    if (fechaNorm < ahora) return 'VENCIDO';
+    return 'PROGRAMADO';
+  }
+  // Sin fecha de normalización — revisar 48h
+  if (tsCreacion) {
+    const hrsTranscurridas = (ahora - new Date(tsCreacion)) / 3600000;
+    if (hrsTranscurridas >= 48) return 'PENDIENTE';
+  }
+  return 'TEMPORAL';
 }
-document.querySelectorAll('.est-btn').forEach(b => {
-  b.addEventListener('click', () => setEstado(b.dataset.v));
+
+function getBadgeClass(estado) {
+  switch(estado) {
+    case 'TEMPORAL':   return 'b-temporal';
+    case 'PROGRAMADO': return 'b-programado';
+    case 'PENDIENTE':  return 'b-pendiente';
+    case 'VENCIDO':    return 'b-vencido';
+    default:           return 'b-temporal';
+  }
+}
+
+function getRowClass(estado) {
+  switch(estado) {
+    case 'TEMPORAL':   return 'r-temporal';
+    case 'PROGRAMADO': return 'r-programado';
+    case 'PENDIENTE':  return 'r-pendiente';
+    case 'VENCIDO':    return 'r-vencido';
+    default:           return 'r-temporal';
+  }
+}
+
+// Actualizar display de estado en el formulario
+function actualizarEstadoDisplay() {
+  const tsCreacion = document.getElementById('f-ts').value;
+  const tsNorm     = document.getElementById('f-ts-norm').value;
+  const estado     = calcularEstado(tsCreacion, tsNorm);
+  const bc         = getBadgeClass(estado);
+  const disp       = document.getElementById('estado-display');
+  disp.innerHTML   = `<span class="badge ${bc}">${estado}</span>`;
+  return estado;
+}
+
+// Escuchar cambios en fechas para actualizar estado en tiempo real
+document.addEventListener('DOMContentLoaded', () => {
+  ['f-ts','f-ts-norm'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('change', actualizarEstadoDisplay);
+  });
 });
 
 function clearForm(){
   ['f-id','f-tag','f-desc','f-causa','f-valor','f-vorig','f-equipo',
-   'f-lib-ts'].forEach(id => {
+   'f-ts-norm','f-aviso-ot','f-resp-norm'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('f-area').value = '';
   document.getElementById('f-disciplina').value = '';
   document.getElementById('f-tipo').value = '';
-  document.getElementById('f-lib-quien').value = '';
-  document.getElementById('f-lib-obs').value = '';
-  // reset dynamic selects for solicitante/responsable
+  // reset dynamic selects
   const fOper = document.getElementById('f-oper');
   const fResp = document.getElementById('f-responsable');
   if(fOper) fOper.value = '';
   if(fResp) fResp.value = '';
   document.getElementById('f-ts').value = nowLocal();
-  setEstado('FORZADO');
+  // reset estado display
+  document.getElementById('estado-display').innerHTML = '<span class="badge b-temporal">TEMPORAL</span>';
 }
 
 // ── Save ───────────────────────────────────────────────
@@ -1593,6 +1636,10 @@ async function saveRecord(){
   if(!tag){ toast('TAG es obligatorio', 'var(--red)'); return }
   if(!oper){ toast('Solicitante es obligatorio', 'var(--red)'); return }
   if(!resp){ toast('Responsable es obligatorio', 'var(--red)'); return }
+
+  const tsCreacion = document.getElementById('f-ts').value;
+  const tsNorm     = document.getElementById('f-ts-norm').value;
+  const estado     = calcularEstado(tsCreacion, tsNorm);
 
   const data = {
     id_registro: document.getElementById('f-id').value.trim(),
@@ -1606,12 +1653,12 @@ async function saveRecord(){
     vorig:       document.getElementById('f-vorig').value.trim(),
     operador:    oper,
     responsable: resp,
-    estado:      selectedEstado,
-    ts:          document.getElementById('f-ts').value,
+    estado,
+    ts:          tsCreacion,
     equipo:      document.getElementById('f-equipo').value.trim(),
-    lib_quien:   document.getElementById('f-lib-quien').value.trim(),
-    lib_ts:      document.getElementById('f-lib-ts').value,
-    lib_obs:     document.getElementById('f-lib-obs').value.trim(),
+    ts_norm:     tsNorm,
+    aviso_ot:    document.getElementById('f-aviso-ot').value.trim(),
+    resp_norm:   document.getElementById('f-resp-norm').value.trim(),
   };
 
   if(fbReady){
@@ -1624,11 +1671,10 @@ async function saveRecord(){
       } else {
         data.created = serverTimestamp();
         await addDoc(collection(db,'forzados'), data);
-        toast('Forzado registrado ✓');
+        toast('Registro creado — Estado: ' + estado);
       }
     } catch(e){ toast('Error al guardar: '+e.message, 'var(--red)'); return }
   } else {
-    // localStorage fallback
     if(editDocId){
       const idx = records.findIndex(r => r._id === editDocId);
       if(idx>-1){ records[idx] = {...records[idx], ...data} }
@@ -1639,7 +1685,7 @@ async function saveRecord(){
     }
     localStorage.setItem('dcs_records', JSON.stringify(records));
     render();
-    toast(editDocId ? 'Registro actualizado ✓' : 'Forzado registrado ✓');
+    toast(editDocId ? 'Registro actualizado ✓' : 'Registro creado — Estado: ' + estado);
   }
   closeModal();
 }
@@ -1673,12 +1719,12 @@ async function confirmDelete(){
 // ── Filter / Search ────────────────────────────────────
 document.querySelectorAll('.filter-pill').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-pill').forEach(b => {
-      b.className = 'filter-pill';
-    });
+    document.querySelectorAll('.filter-pill').forEach(b => b.className = 'filter-pill');
     filterF = btn.dataset.f;
-    const cls = filterF==='ALL'?'on-all':filterF==='FORZADO'?'on-forzado':
-                filterF==='LIBERADO'?'on-liberado':'on-pendiente';
+    const cls = filterF==='ALL'?'on-all':
+                filterF==='TEMPORAL'?'on-temporal':
+                filterF==='PROGRAMADO'?'on-programado':
+                filterF==='PENDIENTE'?'on-pendiente':'on-vencido';
     btn.classList.add(cls);
     render();
   });
@@ -1701,9 +1747,15 @@ document.querySelectorAll('th[data-col]').forEach(th => {
 
 // ── Render table ───────────────────────────────────────
 function render(){
+  // Recalcular estados automáticamente antes de renderizar
+  const ahora = new Date();
+  records.forEach(r => {
+    r.estado = calcularEstado(r.ts, r.ts_norm);
+  });
+
   filtered = records.filter(r => {
     const ms = filterF==='ALL' || r.estado===filterF;
-    const mq = !searchQ || [r.tag,r.desc,r.area,r.operador,r.responsable,r.equipo,r.id_registro,r.disciplina]
+    const mq = !searchQ || [r.tag,r.desc,r.area,r.operador,r.responsable,r.equipo,r.id_registro,r.disciplina,r.aviso_ot,r.resp_norm]
       .join(' ').toLowerCase().includes(searchQ);
     return ms && mq;
   });
@@ -1714,10 +1766,15 @@ function render(){
     return va < vb ? sortDir : va > vb ? -sortDir : 0;
   });
 
-  // counts
-  document.getElementById('cnt-f').textContent = records.filter(r=>r.estado==='FORZADO').length;
-  document.getElementById('cnt-l').textContent = records.filter(r=>r.estado==='LIBERADO').length;
+  // Counters — toolbar stats (3 dots)
+  const nT = records.filter(r=>r.estado==='TEMPORAL').length;
+  const nP = records.filter(r=>r.estado==='PENDIENTE').length;
+  const nV = records.filter(r=>r.estado==='VENCIDO').length;
+  document.getElementById('cnt-f').textContent = records.filter(r=>r.estado==='TEMPORAL').length;
+  document.getElementById('cnt-l').textContent = records.filter(r=>r.estado==='PROGRAMADO').length;
   document.getElementById('cnt-p').textContent = records.filter(r=>r.estado==='PENDIENTE').length;
+  const cntV = document.getElementById('cnt-v');
+  if(cntV) cntV.textContent = records.filter(r=>r.estado==='VENCIDO').length;
   document.getElementById('export-count').textContent = filtered.length;
 
   const tbody = document.getElementById('tbody');
@@ -1732,9 +1789,18 @@ function render(){
 
   const fmtTs = ts => ts ? ts.replace('T',' ') : '—';
 
+  // Color de fecha normalización según urgencia
+  const colorNorm = (tsNorm) => {
+    if(!tsNorm) return 'color:var(--text2)';
+    const diff = (new Date(tsNorm) - new Date()) / 3600000;
+    if(diff < 0)  return 'color:var(--red);font-weight:600';   // vencida
+    if(diff < 24) return 'color:var(--amber);font-weight:600'; // menos de 24h
+    return 'color:var(--green)';
+  };
+
   tbody.innerHTML = filtered.map(r => {
-    const rc = r.estado==='FORZADO'?'r-forzado':r.estado==='LIBERADO'?'r-liberado':'r-pendiente';
-    const bc = r.estado==='FORZADO'?'b-forzado':r.estado==='LIBERADO'?'b-liberado':'b-pendiente';
+    const rc  = getRowClass(r.estado);
+    const bc  = getBadgeClass(r.estado);
     const accCol = isEditor
       ? `<td style="white-space:nowrap">
           <button class="act-btn" title="Editar" style="color:var(--blue)" onclick="openModal('${r._id}')">✎</button>
@@ -1744,8 +1810,8 @@ function render(){
       <td class="td-id">${r.id_registro||'—'}</td>
       <td class="td-tag">${r.tag}</td>
       <td style="font-size:11px;color:var(--text)">${r.equipo||'—'}</td>
-      <td style="max-width:160px;font-size:11px;color:var(--text)" title="${r.desc||''}">${r.desc||'—'}</td>
-      <td>${r.area||'—'}</td>
+      <td style="max-width:140px;font-size:11px;color:var(--text)" title="${r.desc||''}">${r.desc||'—'}</td>
+      <td style="font-size:11px">${r.area||'—'}</td>
       <td style="color:var(--cyan);font-size:11px">${r.disciplina||'—'}</td>
       <td class="td-small">${r.tipo||'—'}</td>
       <td style="font-size:11px">${r.valor||'—'}</td>
@@ -1753,7 +1819,9 @@ function render(){
       <td style="font-size:11px">${r.operador||'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${r.responsable||'—'}</td>
       <td class="td-small">${fmtTs(r.ts)}</td>
-      <td class="td-small" style="${r.lib_quien?'color:var(--green)':''}">${r.lib_quien ? fmtTs(r.lib_ts)+'<br><span style="color:var(--text2)">'+r.lib_quien+'</span>' : '—'}</td>
+      <td class="td-small" style="${colorNorm(r.ts_norm)}">${r.ts_norm ? fmtTs(r.ts_norm) : '—'}</td>
+      <td class="td-small">${r.aviso_ot||'—'}</td>
+      <td style="font-size:11px">${r.resp_norm||'—'}</td>
       ${accCol}
     </tr>`;
   }).join('');
@@ -1776,42 +1844,48 @@ document.querySelectorAll('.time-btn').forEach(btn => {
 function renderDashboard(){
   if(!document.getElementById('page-dashboard').classList.contains('active')) return;
 
-  const nF = records.filter(r=>r.estado==='FORZADO').length;
-  const nL = records.filter(r=>r.estado==='LIBERADO').length;
-  const nP = records.filter(r=>r.estado==='PENDIENTE').length;
-  const nT = records.length;
+  // Recalcular estados
+  records.forEach(r => { r.estado = calcularEstado(r.ts, r.ts_norm); });
 
-  document.getElementById('d-forzados').textContent  = nF;
-  document.getElementById('d-liberados').textContent = nL;
-  document.getElementById('d-rechazados').textContent= nP;
-  document.getElementById('d-total').textContent     = nT;
-  document.getElementById('leg-f').textContent = nF;
-  document.getElementById('leg-l').textContent = nL;
-  document.getElementById('leg-p').textContent = nP;
-  document.getElementById('donut-total').textContent = nT;
+  const nTemp = records.filter(r=>r.estado==='TEMPORAL').length;
+  const nProg = records.filter(r=>r.estado==='PROGRAMADO').length;
+  const nPend = records.filter(r=>r.estado==='PENDIENTE').length;
+  const nVenc = records.filter(r=>r.estado==='VENCIDO').length;
+  const nT    = records.length;
 
-  // Tiempo promedio normalización
-  const libTimes = records
-    .filter(r => r.ts && r.lib_ts && r.estado === 'LIBERADO')
-    .map(r => (new Date(r.lib_ts) - new Date(r.ts)) / 3600000)
+  document.getElementById('d-forzados').textContent   = nTemp;
+  document.getElementById('d-liberados').textContent  = nProg;
+  document.getElementById('d-rechazados').textContent = nPend;
+  document.getElementById('d-vencido') && (document.getElementById('d-vencido').textContent = nVenc);
+  document.getElementById('d-total').textContent      = nT;
+  document.getElementById('leg-f').textContent = nTemp;
+  document.getElementById('leg-l').textContent = nProg;
+  document.getElementById('leg-p').textContent = nPend + nVenc;
+  document.getElementById('donut-total').textContent  = nT;
+
+  // Tiempo promedio hasta normalización (desde forzado hasta fecha planificada)
+  const normTimes = records
+    .filter(r => r.ts && r.ts_norm)
+    .map(r => (new Date(r.ts_norm) - new Date(r.ts)) / 3600000)
     .filter(h => h > 0 && h < 8760);
-  const avgTime = libTimes.length
-    ? (libTimes.reduce((a,b)=>a+b,0)/libTimes.length).toFixed(1)
+  const avgTime = normTimes.length
+    ? (normTimes.reduce((a,b)=>a+b,0)/normTimes.length).toFixed(1) + 'h'
     : '—';
-  document.getElementById('d-avgtime').textContent = avgTime === '—' ? '—' : avgTime + 'h';
+  const avgEl = document.getElementById('d-avgtime');
+  if(avgEl) avgEl.textContent = avgTime;
 
   // Donut
   const circ = 2 * Math.PI * 46;
   if(nT > 0){
-    const pF=(nF/nT)*circ, pL=(nL/nT)*circ, pP=(nP/nT)*circ;
+    const pT=(nTemp/nT)*circ, pP=(nProg/nT)*circ, pPV=((nPend+nVenc)/nT)*circ;
     const gF=document.getElementById('arc-f');
     const gL=document.getElementById('arc-l');
     const gP=document.getElementById('arc-p');
-    gF.setAttribute('stroke-dasharray',`${pF} ${circ}`);
-    gL.setAttribute('stroke-dasharray',`${pL} ${circ}`);
-    gL.setAttribute('stroke-dashoffset',`-${pF}`);
-    gP.setAttribute('stroke-dasharray',`${pP} ${circ}`);
-    gP.setAttribute('stroke-dashoffset',`-${pF+pL}`);
+    gF.setAttribute('stroke-dasharray',`${pT} ${circ}`);
+    gL.setAttribute('stroke-dasharray',`${pP} ${circ}`);
+    gL.setAttribute('stroke-dashoffset',`-${pT}`);
+    gP.setAttribute('stroke-dasharray',`${pPV} ${circ}`);
+    gP.setAttribute('stroke-dashoffset',`-${pT+pP}`);
   }
 
   if(typeof Chart === 'undefined'){
@@ -1820,14 +1894,15 @@ function renderDashboard(){
 
   // ── Evolución temporal ──────────────────────────────
   const now = new Date();
-  const labels = [], dataF = [], dataL = [], dataR = [];
+  const labels = [], dataTmp = [], dataProg = [], dataPend = [], dataVenc = [];
   for(let i = dashDays-1; i >= 0; i--){
     const d = new Date(now); d.setDate(d.getDate()-i);
     const ds = d.toISOString().slice(0,10);
-    labels.push(ds.slice(5)); // MM-DD
-    dataF.push(records.filter(r=>r.ts&&r.ts.startsWith(ds)&&r.estado==='FORZADO').length);
-    dataL.push(records.filter(r=>r.ts&&r.ts.startsWith(ds)&&r.estado==='LIBERADO').length);
-    dataR.push(records.filter(r=>r.ts&&r.ts.startsWith(ds)&&r.estado==='PENDIENTE').length);
+    labels.push(ds.slice(5));
+    dataTmp.push(records.filter(r=>r.ts&&r.ts.startsWith(ds)&&r.estado==='TEMPORAL').length);
+    dataProg.push(records.filter(r=>r.ts&&r.ts.startsWith(ds)&&r.estado==='PROGRAMADO').length);
+    dataPend.push(records.filter(r=>r.ts&&r.ts.startsWith(ds)&&r.estado==='PENDIENTE').length);
+    dataVenc.push(records.filter(r=>r.ts&&r.ts.startsWith(ds)&&r.estado==='VENCIDO').length);
   }
   const ctxT = document.getElementById('chart-temporal').getContext('2d');
   if(chartTemporal) chartTemporal.destroy();
@@ -1836,9 +1911,10 @@ function renderDashboard(){
     data:{
       labels,
       datasets:[
-        {label:'Forzados', data:dataF, backgroundColor:'rgba(240,165,0,.7)', borderRadius:2},
-        {label:'Liberados', data:dataL, backgroundColor:'rgba(26,158,92,.7)', borderRadius:2},
-        {label:'Rechazados', data:dataR, backgroundColor:'rgba(217,53,53,.6)', borderRadius:2}
+        {label:'Temporal',   data:dataTmp,  backgroundColor:'rgba(74,158,255,.7)',  borderRadius:2},
+        {label:'Programado', data:dataProg, backgroundColor:'rgba(26,158,92,.7)',   borderRadius:2},
+        {label:'Pendiente',  data:dataPend, backgroundColor:'rgba(240,165,0,.7)',   borderRadius:2},
+        {label:'Vencido',    data:dataVenc, backgroundColor:'rgba(217,53,53,.7)',   borderRadius:2}
       ]
     },
     options:{
@@ -1853,9 +1929,10 @@ function renderDashboard(){
 
   // ── Comparativa por área (barras apiladas) ──────────
   const areas = [...new Set(records.map(r=>r.area||'Sin área'))].slice(0,8);
-  const aF = areas.map(a=>records.filter(r=>(r.area||'Sin área')===a&&r.estado==='FORZADO').length);
-  const aL = areas.map(a=>records.filter(r=>(r.area||'Sin área')===a&&r.estado==='LIBERADO').length);
-  const aR = areas.map(a=>records.filter(r=>(r.area||'Sin área')===a&&r.estado==='PENDIENTE').length);
+  const aT  = areas.map(a=>records.filter(r=>(r.area||'Sin área')===a&&r.estado==='TEMPORAL').length);
+  const aPr = areas.map(a=>records.filter(r=>(r.area||'Sin área')===a&&r.estado==='PROGRAMADO').length);
+  const aPe = areas.map(a=>records.filter(r=>(r.area||'Sin área')===a&&r.estado==='PENDIENTE').length);
+  const aV  = areas.map(a=>records.filter(r=>(r.area||'Sin área')===a&&r.estado==='VENCIDO').length);
   const shortAreas = areas.map(a=>a.length>12?a.slice(0,12)+'…':a);
   const ctxA = document.getElementById('chart-area-stack').getContext('2d');
   if(chartAreaStack) chartAreaStack.destroy();
@@ -1864,9 +1941,10 @@ function renderDashboard(){
     data:{
       labels:shortAreas,
       datasets:[
-        {label:'Forzados', data:aF, backgroundColor:'rgba(240,165,0,.75)', borderRadius:2},
-        {label:'Liberados', data:aL, backgroundColor:'rgba(26,158,92,.75)', borderRadius:2},
-        {label:'Rechazados', data:aR, backgroundColor:'rgba(217,53,53,.65)', borderRadius:2}
+        {label:'Temporal',   data:aT,  backgroundColor:'rgba(74,158,255,.75)',  borderRadius:2},
+        {label:'Programado', data:aPr, backgroundColor:'rgba(26,158,92,.75)',   borderRadius:2},
+        {label:'Pendiente',  data:aPe, backgroundColor:'rgba(240,165,0,.75)',   borderRadius:2},
+        {label:'Vencido',    data:aV,  backgroundColor:'rgba(217,53,53,.75)',   borderRadius:2}
       ]
     },
     options:{
@@ -1902,8 +1980,8 @@ function renderDashboard(){
 
   // ── Tiempo normalización por área ───────────────────
   const tiempoArea = {};
-  records.filter(r=>r.ts&&r.lib_ts&&r.estado==='LIBERADO').forEach(r=>{
-    const hrs = (new Date(r.lib_ts)-new Date(r.ts))/3600000;
+  records.filter(r=>r.ts&&r.ts_norm).forEach(r=>{
+    const hrs = (new Date(r.ts_norm)-new Date(r.ts))/3600000;
     if(hrs>0&&hrs<8760){
       const a = r.area||'Sin área';
       if(!tiempoArea[a]) tiempoArea[a]={sum:0,cnt:0};
@@ -1952,19 +2030,20 @@ const dl = (name, content, type) => {
 const expData = () => filtered.length ? filtered : records;
 
 function exportCSV(){
-  const cols = ['ID','Tag','Descripción','Área','Disciplina','Tipo','Valor Forzado',
-    'Valor Original','Estado','Solicitante','Responsable','Fecha Forzado','Equipo Asociado','Libera','Fecha Liberación','Obs. Liberación','Causa'];
+  const cols = ['ID','Tag','Equipo','Descripción','Área','Disciplina','Tipo','Valor Forzado',
+    'Valor Original','Estado','Solicitante','Responsable','Fecha Forzado',
+    'F. Normalización','Aviso/OT SAP','Resp. Normalización','Causa'];
   const rows = expData().map(r => [
-    r.id_registro,r.tag,r.desc,r.area,r.disciplina,r.tipo,r.valor,r.vorig,
-    r.estado,r.operador,r.responsable,r.ts,r.equipo,r.lib_quien,r.lib_ts,r.lib_obs,r.causa
+    r.id_registro,r.tag,r.equipo,r.desc,r.area,r.disciplina,r.tipo,r.valor,r.vorig,
+    r.estado,r.operador,r.responsable,r.ts,r.ts_norm,r.aviso_ot,r.resp_norm,r.causa
   ].map(v => `"${(v||'').replace(/"/g,'""')}"`).join(','));
-  dl(`forzados_${new Date().toISOString().slice(0,10)}.csv`,
+  dl(`bitacora_dcs_${new Date().toISOString().slice(0,10)}.csv`,
     [cols.join(','), ...rows].join('\r\n'), 'text/csv;charset=utf-8');
   document.getElementById('modal-export').classList.remove('open');
 }
 
 function exportJSON(){
-  dl(`forzados_${new Date().toISOString().slice(0,10)}.json`,
+  dl(`bitacora_dcs_${new Date().toISOString().slice(0,10)}.json`,
     JSON.stringify(expData(), null, 2), 'application/json');
   document.getElementById('modal-export').classList.remove('open');
 }
@@ -1972,36 +2051,40 @@ function exportJSON(){
 function exportTXT(){
   const lines = expData().map((r,i) =>
     `[${i+1}] ${r.tag} — ${r.estado}\n` +
-    `    Área: ${r.area||'—'} | Disciplina: ${r.disciplina||'—'}\n` +
-    `    Solicitante: ${r.operador||'—'} | Responsable: ${r.responsable||'—'} | Forzado: ${r.ts||'—'}\n` +
-    (r.lib_quien ? `    Liberado por: ${r.lib_quien} | ${r.lib_ts||'—'}\n` : '') +
+    `    Área: ${r.area||'—'} | Disciplina: ${r.disciplina||'—'} | Equipo: ${r.equipo||'—'}\n` +
+    `    Solicitante: ${r.operador||'—'} | Responsable: ${r.responsable||'—'}\n` +
+    `    Fecha forzado: ${r.ts||'—'}\n` +
+    (r.ts_norm ? `    F. Normalización: ${r.ts_norm} | Resp: ${r.resp_norm||'—'} | OT: ${r.aviso_ot||'—'}\n` : '') +
     (r.causa ? `    Causa: ${r.causa}\n` : '')
   ).join('\n');
-  dl(`forzados_${new Date().toISOString().slice(0,10)}.txt`, lines, 'text/plain');
+  dl(`bitacora_dcs_${new Date().toISOString().slice(0,10)}.txt`, lines, 'text/plain');
   document.getElementById('modal-export').classList.remove('open');
 }
 
 function exportHTML(){
   const rows = expData().map(r =>
-    `<tr><td>${r.id_registro||''}</td><td><b>${r.tag}</b></td><td>${r.desc||''}</td>
+    `<tr><td>${r.id_registro||''}</td><td><b>${r.tag}</b></td><td>${r.equipo||''}</td>
     <td>${r.area||''}</td><td>${r.disciplina||''}</td>
-    <td>${r.estado}</td><td>${r.operador||''}</td><td>${r.responsable||''}</td><td>${(r.ts||'').replace('T',' ')}</td>
-    <td>${r.lib_quien||''}</td><td>${(r.lib_ts||'').replace('T',' ')}</td><td>${r.equipo||''}</td></tr>`
+    <td>${r.estado}</td><td>${r.operador||''}</td><td>${r.responsable||''}</td>
+    <td>${(r.ts||'').replace('T',' ')}</td>
+    <td>${(r.ts_norm||'').replace('T',' ')}</td><td>${r.aviso_ot||''}</td><td>${r.resp_norm||''}</td></tr>`
   ).join('');
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Bitácora DCS — ${new Date().toLocaleDateString('es-CL')}</title>
   <style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}
-  h1{font-size:18px;margin-bottom:4px}p{color:#666;font-size:11px;margin-bottom:16px}
+  h1{font-size:18px;margin-bottom:4px;color:#1a7db5}p{color:#666;font-size:11px;margin-bottom:16px}
   table{width:100%;border-collapse:collapse}
-  th{background:#1a2530;color:#fff;padding:8px;text-align:left;font-size:11px}
+  th{background:#1a7db5;color:#fff;padding:8px;text-align:left;font-size:11px}
   td{padding:7px 8px;border-bottom:1px solid #e0e0e0;font-size:11px}
   tr:nth-child(even){background:#f8f8f8}</style></head>
-  <body><h1>BITÁCORA DE FORZADOS — DCS</h1>
+  <body><h1>BITÁCORA DE FORZADOS — DCS CENTINELA</h1>
   <p>Generado: ${new Date().toLocaleString('es-CL')} | Total: ${expData().length} registros</p>
-  <table><thead><tr><th>ID</th><th>Tag</th><th>Descripción</th><th>Área</th><th>Disciplina</th>
-  <th>Estado</th><th>Solicitante</th><th>Responsable</th><th>Forzado</th><th>Libera</th><th>F.Liberación</th><th>EQUIPO</th>
+  <table><thead><tr>
+  <th>ID</th><th>Tag</th><th>Equipo</th><th>Área</th><th>Disciplina</th>
+  <th>Estado</th><th>Solicitante</th><th>Responsable</th><th>Forzado</th>
+  <th>F.Normalización</th><th>Aviso/OT SAP</th><th>Resp.Normalización</th>
   </tr></thead><tbody>${rows}</tbody></table></body></html>`;
-  dl(`reporte_forzados_${new Date().toISOString().slice(0,10)}.html`, html, 'text/html');
+  dl(`reporte_dcs_${new Date().toISOString().slice(0,10)}.html`, html, 'text/html');
   document.getElementById('modal-export').classList.remove('open');
 }
 
