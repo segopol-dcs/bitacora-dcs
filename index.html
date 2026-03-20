@@ -227,6 +227,7 @@ header {
 .filter-pill.on-programado { border-color:var(--green); color:var(--green); background:var(--green-g) }
 .filter-pill.on-pendiente  { border-color:var(--amber); color:var(--amber); background:var(--amber-g) }
 .filter-pill.on-vencido    { border-color:var(--red);   color:var(--red);   background:var(--red-g)   }
+.filter-pill.on-critico    { border-color:#c0392b; color:#fff; background:#c0392b }
 .filter-pill.on-all        { border-color:var(--text2); color:var(--white)  }
 
 .tb-stats { display:flex; gap:14px; margin-left:auto; flex-shrink:0 }
@@ -844,6 +845,7 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
     <button class="filter-pill" data-f="PROGRAMADO">● PROGRAMADO</button>
     <button class="filter-pill" data-f="PENDIENTE">● PENDIENTE</button>
     <button class="filter-pill" data-f="VENCIDO">● VENCIDO</button>
+    <button class="filter-pill" data-f="CRITICO">🔴 CRÍTICOS</button>
 
     <div class="tb-stats">
       <span class="tb-stat"><span class="tb-dot" style="background:var(--blue)"></span><span id="cnt-f">0</span> temp.</span>
@@ -1472,28 +1474,69 @@ function populateFormSelects(){
   convertToSelect('f-responsable', cfgLists.responsables, 'Seleccionar responsable...');
 }
 
+// Mapa campo → lista de configuración
+const FIELD_CFG_MAP = {
+  'f-area':        'areas',
+  'f-disciplina':  'disciplinas',
+  'f-tipo':        'tipos',
+  'f-causa':       'causas',
+  'f-oper':        'solicitantes',
+  'f-responsable': 'responsables',
+  'f-resp-norm':   'resp_norm',
+};
+
+// Guardar valor nuevo en la lista de configuración automáticamente
+function autoGuardarEnConfig(fieldId, valor){
+  const cfgKey = FIELD_CFG_MAP[fieldId];
+  if(!cfgKey || !valor) return;
+  if(!cfgLists[cfgKey]) cfgLists[cfgKey] = [];
+  if(cfgLists[cfgKey].includes(valor)) return; // ya existe
+  cfgLists[cfgKey].push(valor);
+  saveCfgToFirebase();
+  toast(`"${valor}" guardado en configuración ✓`);
+}
+
+// Handler centralizado para "Otro..."
+function handleOtro(sel, currentVal){
+  const txt = prompt('Ingresa el nuevo valor — se guardará en la lista de configuración:');
+  if(txt && txt.trim()){
+    const val = txt.trim();
+    const opt = document.createElement('option');
+    opt.value = val; opt.text = val; opt.selected = true;
+    sel.insertBefore(opt, sel.lastElementChild);
+    sel.value = val;
+    // Guardar automáticamente en configuración
+    autoGuardarEnConfig(sel.id, val);
+  } else {
+    sel.value = currentVal || '';
+  }
+}
+
 function setSelectOptions(id, list){
   const sel = document.getElementById(id);
   if(!sel || sel.tagName !== 'SELECT') return;
   const current = sel.value;
-  // Siempre incluir el valor actual aunque no esté en la lista
-  const extraOpt = (current && !list.includes(current))
+  const extraOpt = (current && current !== '__otro__' && !list.includes(current))
     ? `<option value="${current}" selected>${current}</option>` : '';
   sel.innerHTML = '<option value="">— Seleccionar —</option>' +
     list.map(v => `<option${v===current?' selected':''}>${v}</option>`).join('') +
     extraOpt +
     '<option value="__otro__">Otro...</option>';
+  // Asegurar listener
+  attachOtroListener(sel);
 }
 
 function setSelectValue(id, val){
   const sel = document.getElementById(id);
   if(!sel) return;
   if(sel.tagName === 'SELECT'){
-    // Agregar opción si no existe en la lista
     if(val && ![...sel.options].find(o => o.value === val || o.text === val)){
       const opt = document.createElement('option');
       opt.value = val; opt.text = val;
-      sel.appendChild(opt);
+      // Insertar antes de "Otro..."
+      const otroOpt = [...sel.options].find(o => o.value === '__otro__');
+      if(otroOpt) sel.insertBefore(opt, otroOpt);
+      else sel.appendChild(opt);
     }
     sel.value = val;
   } else {
@@ -1501,15 +1544,24 @@ function setSelectValue(id, val){
   }
 }
 
+function attachOtroListener(sel){
+  // Evitar duplicar listeners usando data attribute
+  if(sel.dataset.otroListened) return;
+  sel.dataset.otroListened = '1';
+  sel.addEventListener('change', function(){
+    if(this.value === '__otro__'){
+      handleOtro(this, '');
+    }
+  });
+}
+
 function convertToSelect(id, list, placeholder){
   const el = document.getElementById(id);
   if(!el) return;
   if(el.tagName === 'SELECT'){
-    // Ya es select — actualizar opciones preservando valor actual
     setSelectOptions(id, list);
     return;
   }
-  // Reemplazar input por select
   const currentVal = el.value || '';
   const sel = document.createElement('select');
   sel.id = id;
@@ -1521,27 +1573,14 @@ function convertToSelect(id, list, placeholder){
 
   if(list.length === 0){
     sel.innerHTML = `<option value="">— Sin valores configurados —</option>` +
-      extraOpt +
-      `<option value="__otro__">Escribir manualmente...</option>`;
+      extraOpt + `<option value="__otro__">Otro...</option>`;
   } else {
     sel.innerHTML = `<option value="">— ${placeholder} —</option>` +
       list.map(v => `<option${v===currentVal?' selected':''}>${v}</option>`).join('') +
-      extraOpt +
-      '<option value="__otro__">Otro...</option>';
+      extraOpt + '<option value="__otro__">Otro...</option>';
   }
   if(currentVal) sel.value = currentVal;
-
-  sel.addEventListener('change', function(){
-    if(this.value === '__otro__'){
-      const txt = prompt('Ingresa el valor:');
-      if(txt){
-        const opt = document.createElement('option');
-        opt.value = txt; opt.text = txt; opt.selected = true;
-        this.insertBefore(opt, this.lastElementChild);
-        this.value = txt;
-      } else { this.value = currentVal || '' }
-    }
-  });
+  attachOtroListener(sel);
   el.parentNode.replaceChild(sel, el);
 }
 
@@ -1834,7 +1873,8 @@ document.querySelectorAll('.filter-pill').forEach(btn => {
     const cls = filterF==='ALL'?'on-all':
                 filterF==='TEMPORAL'?'on-temporal':
                 filterF==='PROGRAMADO'?'on-programado':
-                filterF==='PENDIENTE'?'on-pendiente':'on-vencido';
+                filterF==='PENDIENTE'?'on-pendiente':
+                filterF==='VENCIDO'?'on-vencido':'on-critico';
     btn.classList.add(cls);
     render();
   });
@@ -1864,8 +1904,10 @@ function render(){
   });
 
   filtered = records.filter(r => {
-    const ms = filterF==='ALL' || r.estado===filterF;
-    const mq = !searchQ || [r.tag,r.desc,r.area,r.operador,r.responsable,r.equipo,r.id_registro,r.disciplina,r.aviso_ot,r.resp_norm]
+    const ms = filterF==='ALL' ? true :
+               filterF==='CRITICO' ? r.critico === true :
+               r.estado === filterF;
+    const mq = !searchQ || [r.tag,r.desc,r.area,r.operador,r.responsable,r.equipo,r.id_registro,r.disciplina,r.aviso_ot,r.resp_norm,r.causa]
       .join(' ').toLowerCase().includes(searchQ);
     return ms && mq;
   });
