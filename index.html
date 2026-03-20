@@ -790,6 +790,7 @@ canvas{flex:1;min-height:0;width:100% !important}
     <button class="cfg-tab" data-list="tipos">TIPOS</button>
     <button class="cfg-tab" data-list="liberadores">LIBERA</button>
     <button class="cfg-tab" data-list="obs_lib">OBS. LIB.</button>
+    <button class="cfg-tab" data-list="correos">✉ CORREOS</button>
   </div>
   <div class="config-body">
     <div class="cfg-section-label" id="cfg-current-label">Solicitantes</div>
@@ -1282,14 +1283,16 @@ const CFG_DEFAULTS = {
   responsables: [],
   tipos: ['AI','AO','DI','DO','Lazo PID','Setpoint','Permisivo','Enclavamiento'],
   liberadores: [],
-  obs_lib: ['Normalizado sin novedad','Equipo reparado y funcional','Prueba completada','Mantenimiento finalizado','Proceso estabilizado','Otro']
+  obs_lib: ['Normalizado sin novedad','Equipo reparado y funcional','Prueba completada','Mantenimiento finalizado','Proceso estabilizado','Otro'],
+  correos: []
 };
 let cfgLists = JSON.parse(JSON.stringify(CFG_DEFAULTS));
 let cfgActiveList = 'solicitantes';
 const CFG_LABELS = {
   solicitantes:'Solicitantes', areas:'Áreas', disciplinas:'Disciplinas',
   responsables:'Responsables', tipos:'Tipos de señal',
-  liberadores:'Quién libera', obs_lib:'Observaciones de liberación'
+  liberadores:'Quién libera', obs_lib:'Observaciones de liberación',
+  correos:'Correos para reporte semanal'
 };
 
 function openConfig(){
@@ -1343,12 +1346,25 @@ document.querySelectorAll('.cfg-tab').forEach(tab => {
 function renderCfgList(){
   const list = cfgLists[cfgActiveList] || [];
   const wrap = document.getElementById('cfg-list');
+
+  // Placeholder especial para correos
+  const esCorreos = cfgActiveList === 'correos';
+  const placeholder = document.getElementById('cfg-new-val');
+  if(esCorreos){
+    placeholder.placeholder = 'nombre@correo.com';
+    placeholder.type = 'email';
+  } else {
+    placeholder.placeholder = 'Agregar nuevo valor...';
+    placeholder.type = 'text';
+  }
+
   if(!list.length){
-    wrap.innerHTML = '<div class="cfg-empty">Sin valores — agrega el primero</div>';
+    wrap.innerHTML = `<div class="cfg-empty">${esCorreos ? 'Sin correos configurados — agrega destinatarios del reporte semanal' : 'Sin valores — agrega el primero'}</div>`;
     return;
   }
   wrap.innerHTML = list.map((v,i) => `
     <div class="cfg-item">
+      ${esCorreos ? `<span style="font-size:14px;margin-right:4px">✉</span>` : ''}
       <span class="cfg-item-name">${v}</span>
       <button class="cfg-item-del" onclick="cfgDelete(${i})" title="Eliminar">✕</button>
     </div>`).join('');
@@ -1357,19 +1373,26 @@ function renderCfgList(){
 function cfgAdd(){
   const val = document.getElementById('cfg-new-val').value.trim();
   if(!val){ toast('Escribe un valor primero','var(--red)'); return }
+
+  // Validar formato de correo
+  if(cfgActiveList === 'correos'){
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if(!emailRegex.test(val)){ toast('Formato de correo inválido','var(--red)'); return }
+  }
+
   if(cfgLists[cfgActiveList].includes(val)){ toast('Ya existe ese valor','var(--amber)'); return }
   cfgLists[cfgActiveList].push(val);
   document.getElementById('cfg-new-val').value = '';
   renderCfgList();
   saveCfgToFirebase();
-  toast('Valor agregado ✓');
+  toast(cfgActiveList === 'correos' ? 'Correo agregado ✓' : 'Valor agregado ✓');
 }
 
 function cfgDelete(idx){
   cfgLists[cfgActiveList].splice(idx, 1);
   renderCfgList();
   saveCfgToFirebase();
-  toast('Valor eliminado','var(--red)');
+  toast('Eliminado','var(--red)');
 }
 
 // Populate all form selects with config lists
