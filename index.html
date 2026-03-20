@@ -850,7 +850,8 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
     <div class="tb-stats">
       <span class="tb-stat"><span class="tb-dot" style="background:var(--blue)"></span><span id="cnt-f">0</span> temp.</span>
       <span class="tb-stat"><span class="tb-dot" style="background:var(--green)"></span><span id="cnt-l">0</span> prog.</span>
-      <span class="tb-stat"><span class="tb-dot" style="background:var(--red)"></span><span id="cnt-p">0</span> pend./venc.</span>
+      <span class="tb-stat"><span class="tb-dot" style="background:var(--amber)"></span><span id="cnt-p">0</span> pend.</span>
+      <span class="tb-stat"><span class="tb-dot" style="background:var(--red)"></span><span id="cnt-v">0</span> venc.</span>
     </div>
 
     <button class="btn-export" onclick="openExport()">⤓ EXPORTAR</button>
@@ -1939,7 +1940,8 @@ function render(){
   }
   empty.style.display = 'none';
 
-  const fmtTs = ts => ts ? ts.replace('T',' ') : '—';
+  const fmtTs   = ts => ts ? ts.replace('T',' ') : '—';
+  const fmtDate = ts => ts ? ts.slice(0,10) : '—';
 
   // Color de fecha normalización según urgencia
   const colorNorm = (tsNorm) => {
@@ -1960,7 +1962,7 @@ function render(){
         </td>` : '';
     return `<tr class="${rc}">
       <td class="td-id" style="width:60px;font-size:11px">${r.id_registro||'—'}</td>
-      <td class="td-small">${fmtTs(r.ts)}</td>
+      <td class="td-small">${fmtDate(r.ts)}</td>
       <td class="td-tag">${r.tag}</td>
       <td style="font-size:11px;color:var(--text)">${r.equipo||'—'}</td>
       <td style="max-width:130px;font-size:11px;color:var(--text)" title="${r.desc||''}">${r.desc||'—'}</td>
