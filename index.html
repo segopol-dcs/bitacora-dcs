@@ -504,7 +504,7 @@ input::placeholder, textarea::placeholder { color:var(--text2); opacity:.6 }
   padding:10px 16px; height:100%; overflow:hidden;
 }
 .dash-kpi-row {
-  display:grid; grid-template-columns:repeat(5,1fr); gap:8px; flex-shrink:0;
+  display:grid; grid-template-columns:repeat(6,1fr); gap:8px; flex-shrink:0;
 }
 .kpi-card {
   background:#ffffff; border:1px solid var(--border);
@@ -804,6 +804,7 @@ canvas{flex:1;min-height:0;width:100% !important}
     <button class="cfg-tab" data-list="disciplinas">DISCIPLINAS</button>
     <button class="cfg-tab" data-list="responsables">RESPONSABLES</button>
     <button class="cfg-tab" data-list="tipos">TIPOS</button>
+    <button class="cfg-tab" data-list="causas">CAUSAS</button>
     <button class="cfg-tab" data-list="resp_norm">RESP. NORM.</button>
     <button class="cfg-tab" data-list="correos">✉ CORREOS</button>
   </div>
@@ -861,6 +862,7 @@ canvas{flex:1;min-height:0;width:100% !important}
           <th data-col="operador">SOLICITANTE ↕</th>
           <th data-col="responsable">RESPONSABLE ↕</th>
           <th data-col="ts_norm">F. NORMALIZACIÓN ↕</th>
+          <th data-col="causa">CAUSA</th>
           <th data-col="aviso_ot">AVISO/OT SAP</th>
           <th data-col="resp_norm">RESP. NORMALIZACIÓN ↕</th>
           <th id="col-acc" style="display:none;width:80px">ACC.</th>
@@ -886,7 +888,7 @@ canvas{flex:1;min-height:0;width:100% !important}
     <div class="kpi-card kf">
       <div class="kpi-label">TEMPORAL</div>
       <div class="kpi-value" id="d-forzados">0</div>
-      <div class="kpi-sub">sin fecha normalización &lt;48h</div>
+      <div class="kpi-sub">activos &lt; 48h sin fecha</div>
     </div>
     <div class="kpi-card kl">
       <div class="kpi-label">PROGRAMADO</div>
@@ -896,17 +898,22 @@ canvas{flex:1;min-height:0;width:100% !important}
     <div class="kpi-card kp">
       <div class="kpi-label">PENDIENTE</div>
       <div class="kpi-value" id="d-rechazados">0</div>
-      <div class="kpi-sub">sin fecha y +48h</div>
+      <div class="kpi-sub">+48h sin fecha asignada</div>
     </div>
     <div class="kpi-card" style="border-top-color:var(--red)">
       <div class="kpi-label">VENCIDO</div>
       <div class="kpi-value" id="d-vencido" style="color:var(--red)">0</div>
-      <div class="kpi-sub">fecha normalización superada</div>
+      <div class="kpi-sub">fecha normaliz. superada</div>
     </div>
     <div class="kpi-card kt">
       <div class="kpi-label">TOTAL REGISTROS</div>
       <div class="kpi-value" id="d-total">0</div>
       <div class="kpi-sub">histórico completo</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:#9b59b6">
+      <div class="kpi-label">DÍAS PROM. A NORMALIZ.</div>
+      <div class="kpi-value" id="d-avgdays" style="color:#9b59b6;font-size:26px">—</div>
+      <div class="kpi-sub">desde forzado hasta fecha planif.</div>
     </div>
   </div>
 
@@ -963,26 +970,26 @@ canvas{flex:1;min-height:0;width:100% !important}
 
     <!-- Top equipos -->
     <div class="dash-card">
-      <div class="dash-card-title">🔧 Top Equipos con más Forzados</div>
+      <div class="dash-card-title">🔧 Top Equipos con más Registros</div>
       <div id="chart-equipos"></div>
     </div>
 
-    <!-- Por responsable -->
+    <!-- Por responsable activos -->
     <div class="dash-card">
-      <div class="dash-card-title">👤 Forzados Activos por Responsable</div>
+      <div class="dash-card-title">👤 Pendientes/Vencidos por Responsable</div>
       <div id="chart-responsable"></div>
+    </div>
+
+    <!-- Por causa -->
+    <div class="dash-card">
+      <div class="dash-card-title">⚡ Registros por Causa</div>
+      <div id="chart-causa"></div>
     </div>
 
     <!-- Por disciplina -->
     <div class="dash-card">
-      <div class="dash-card-title">🏷 Forzados por Disciplina</div>
+      <div class="dash-card-title">🏷 Registros por Disciplina</div>
       <div id="chart-disc"></div>
-    </div>
-
-    <!-- Tiempo por área -->
-    <div class="dash-card">
-      <div class="dash-card-title">⏱ Tiempo Prom. Normalización (hrs)</div>
-      <div id="chart-tiempo"></div>
     </div>
 
   </div>
@@ -1024,8 +1031,10 @@ canvas{flex:1;min-height:0;width:100% !important}
           <input id="f-desc" type="text" placeholder="Bomba de alimentación norte">
         </div>
         <div class="field">
-          <label>Causa / Motivo</label>
-          <input id="f-causa" type="text" placeholder="Mantenimiento preventivo, prueba funcional...">
+          <label>Causa / Motivo *</label>
+          <select id="f-causa">
+            <option value="">— Seleccionar —</option>
+          </select>
         </div>
       </div>
     </div>
@@ -1090,7 +1099,7 @@ canvas{flex:1;min-height:0;width:100% !important}
         <div class="form-grid fg-3">
           <div class="field">
             <label>Fecha Normalización (planificada)</label>
-            <input id="f-ts-norm" type="datetime-local">
+            <input id="f-ts-norm" type="date">
           </div>
           <div class="field">
             <label>Aviso / OT SAP</label>
@@ -1294,17 +1303,19 @@ const CFG_DEFAULTS = {
   disciplinas: ['Electricidad','Instrumentación','DCS','Mecánicos','Metalurgia','GP','Operaciones','Planificación'],
   responsables: [],
   tipos: ['AI','AO','DI','DO','Lazo PID','Setpoint','Permisivo','Enclavamiento'],
-  resp_norm: [],   // lista de responsables normalización con correo
+  causas: ['Mantenimiento preventivo','Mantenimiento correctivo','Prueba funcional','Comisionamiento','Calibración','Falla de equipo','Modificación de proceso','Otro'],
+  resp_norm: [],
   correos: []
 };
-let cfgLists = JSON.parse(JSON.stringify(CFG_DEFAULTS));
-let cfgActiveList = 'solicitantes';
 const CFG_LABELS = {
   solicitantes:'Solicitantes', areas:'Áreas', disciplinas:'Disciplinas',
   responsables:'Responsables', tipos:'Tipos de señal',
+  causas:'Causas / Motivos de forzado',
   resp_norm:'Responsables de Normalización (Nombre | correo@dominio.com)',
   correos:'Correos para reporte semanal'
 };
+let cfgLists = JSON.parse(JSON.stringify(CFG_DEFAULTS));
+let cfgActiveList = 'solicitantes';
 
 function openConfig(){
   if(!isEditor){ toast('Se requiere modo EDITOR','var(--red)'); return }
@@ -1437,7 +1448,7 @@ function populateFormSelects(){
   setSelectOptions('f-area', cfgLists.areas);
   setSelectOptions('f-disciplina', cfgLists.disciplinas);
   setSelectOptions('f-tipo', cfgLists.tipos);
-  // Responsable normalización — extraer solo el nombre (antes del |)
+  setSelectOptions('f-causa', cfgLists.causas);
   const respNormNames = (cfgLists.resp_norm||[]).map(v => v.split('|')[0].trim());
   convertToSelect('f-resp-norm', respNormNames, 'Seleccionar responsable...');
   convertToSelect('f-oper', cfgLists.solicitantes, 'Seleccionar solicitante...');
@@ -1563,6 +1574,7 @@ function openModal(id = null){
     document.getElementById('f-responsable').value  = r.responsable || '';
     document.getElementById('f-ts').value           = r.ts || '';
     document.getElementById('f-equipo').value       = r.equipo || '';
+    setSelectValue('f-causa', r.causa || '');
     document.getElementById('f-ts-norm').value      = r.ts_norm || '';
     document.getElementById('f-aviso-ot').value     = r.aviso_ot || '';
     document.getElementById('f-resp-norm').value    = r.resp_norm || '';
@@ -1636,13 +1648,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function clearForm(){
-  ['f-id','f-tag','f-desc','f-causa','f-valor','f-vorig','f-equipo',
+  ['f-id','f-tag','f-desc','f-valor','f-vorig','f-equipo',
    'f-ts-norm','f-aviso-ot','f-resp-norm'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('f-area').value = '';
   document.getElementById('f-disciplina').value = '';
   document.getElementById('f-tipo').value = '';
+  document.getElementById('f-causa') && (document.getElementById('f-causa').value = '');
   // reset dynamic selects
   const fOper = document.getElementById('f-oper');
   const fResp = document.getElementById('f-responsable');
@@ -1667,6 +1680,8 @@ async function saveRecord(){
   }
   const tipo = document.getElementById('f-tipo').value;
   if(!tipo){ toast('Tipo de señal es obligatorio', 'var(--red)'); return }
+  const causa = document.getElementById('f-causa').value;
+  if(!causa){ toast('Causa / Motivo es obligatorio', 'var(--red)'); return }
 
   const tsCreacion = document.getElementById('f-ts').value;
   const tsNorm     = document.getElementById('f-ts-norm').value;
@@ -1676,7 +1691,7 @@ async function saveRecord(){
     id_registro: idVal ? parseInt(idVal) : '',
     tag,
     desc:        document.getElementById('f-desc').value.trim(),
-    causa:       document.getElementById('f-causa').value.trim(),
+    causa:       causa,
     area:        document.getElementById('f-area').value,
     disciplina:  document.getElementById('f-disciplina').value,
     tipo:        document.getElementById('f-tipo').value,
@@ -1850,7 +1865,8 @@ function render(){
       <td><span class="badge ${bc}">${r.estado}</span></td>
       <td style="font-size:11px">${r.operador||'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${r.responsable||'—'}</td>
-      <td class="td-small" style="${colorNorm(r.ts_norm)}">${r.ts_norm ? fmtTs(r.ts_norm) : '—'}</td>
+      <td class="td-small" style="${colorNorm(r.ts_norm)}">${r.ts_norm||'—'}</td>
+      <td style="font-size:11px;max-width:130px" title="${r.causa||''}">${r.causa||'—'}</td>
       <td class="td-small">${r.aviso_ot||'—'}</td>
       <td style="font-size:11px">${r.resp_norm||'—'}</td>
       ${accCol}
@@ -1887,23 +1903,24 @@ function renderDashboard(){
   document.getElementById('d-forzados').textContent   = nTemp;
   document.getElementById('d-liberados').textContent  = nProg;
   document.getElementById('d-rechazados').textContent = nPend;
-  document.getElementById('d-vencido') && (document.getElementById('d-vencido').textContent = nVenc);
-  document.getElementById('d-total').textContent      = nT;
-  document.getElementById('leg-f').textContent = nTemp;
-  document.getElementById('leg-l').textContent = nProg;
-  document.getElementById('leg-p').textContent = nPend + nVenc;
-  document.getElementById('donut-total').textContent  = nT;
+  const dVenc = document.getElementById('d-vencido');
+  if(dVenc) dVenc.textContent = nVenc;
+  document.getElementById('d-total').textContent = nT;
+  document.getElementById('leg-f').textContent   = nTemp;
+  document.getElementById('leg-l').textContent   = nProg;
+  document.getElementById('leg-p').textContent   = nPend + nVenc;
+  document.getElementById('donut-total').textContent = nT;
 
-  // Tiempo promedio hasta normalización (desde forzado hasta fecha planificada)
-  const normTimes = records
+  // Días promedio desde forzado hasta fecha normalización planificada
+  const diasNorm = records
     .filter(r => r.ts && r.ts_norm)
-    .map(r => (new Date(r.ts_norm) - new Date(r.ts)) / 3600000)
-    .filter(h => h > 0 && h < 8760);
-  const avgTime = normTimes.length
-    ? (normTimes.reduce((a,b)=>a+b,0)/normTimes.length).toFixed(1) + 'h'
-    : '—';
-  const avgEl = document.getElementById('d-avgtime');
-  if(avgEl) avgEl.textContent = avgTime;
+    .map(r => (new Date(r.ts_norm) - new Date(r.ts)) / 86400000)
+    .filter(d => d > 0 && d < 365);
+  const avgDays = diasNorm.length
+    ? Math.round(diasNorm.reduce((a,b)=>a+b,0) / diasNorm.length)
+    : null;
+  const dAvg = document.getElementById('d-avgdays');
+  if(dAvg) dAvg.textContent = avgDays !== null ? avgDays + 'd' : '—';
 
   // Donut
   const circ = 2 * Math.PI * 46;
@@ -1991,44 +2008,28 @@ function renderDashboard(){
   // ── Top equipos ─────────────────────────────────────
   renderBarChart('chart-equipos','equipo','#1a7db5',10);
 
-  // ── Forzados activos por responsable ────────────────
+  // ── Pendientes/Vencidos por responsable normalización ─
   const respCounts = {};
-  records.filter(r=>r.estado==='FORZADO').forEach(r=>{
-    const k = r.responsable||'Sin asignar';
+  records.filter(r=>r.estado==='PENDIENTE'||r.estado==='VENCIDO').forEach(r=>{
+    const k = r.resp_norm||r.responsable||'Sin asignar';
     respCounts[k]=(respCounts[k]||0)+1;
   });
   const respSorted = Object.entries(respCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const maxR = respSorted[0]?.[1]||1;
-  document.getElementById('chart-responsable').innerHTML = respSorted.map(([k,v])=>`
-    <div class="bar-row">
-      <div class="bar-label" title="${k}">${k}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxR)*100}%;background:#e05252"></div></div>
-      <div class="bar-count">${v}</div>
-    </div>`).join('')||'<div style="color:var(--text2);font-size:11px">Sin forzados activos</div>';
+  document.getElementById('chart-responsable').innerHTML = respSorted.length
+    ? respSorted.map(([k,v])=>`
+      <div class="bar-row">
+        <div class="bar-label" title="${k}">${k}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(v/maxR)*100}%;background:var(--red)"></div></div>
+        <div class="bar-count">${v}</div>
+      </div>`).join('')
+    : '<div style="color:var(--text2);font-size:11px">Sin registros pendientes o vencidos ✓</div>';
 
-  // ── Disciplinas ──────────────────────────────────────
+  // ── Por causa ────────────────────────────────────────
+  renderBarChart('chart-causa','causa','#9b59b6',8);
+
+  // ── Por disciplina ───────────────────────────────────
   renderBarChart('chart-disc','disciplina','#2196b8',8);
-
-  // ── Tiempo normalización por área ───────────────────
-  const tiempoArea = {};
-  records.filter(r=>r.ts&&r.ts_norm).forEach(r=>{
-    const hrs = (new Date(r.ts_norm)-new Date(r.ts))/3600000;
-    if(hrs>0&&hrs<8760){
-      const a = r.area||'Sin área';
-      if(!tiempoArea[a]) tiempoArea[a]={sum:0,cnt:0};
-      tiempoArea[a].sum+=hrs; tiempoArea[a].cnt++;
-    }
-  });
-  const tiempoSorted = Object.entries(tiempoArea)
-    .map(([k,v])=>[k, parseFloat((v.sum/v.cnt).toFixed(1))])
-    .sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const maxT = tiempoSorted[0]?.[1]||1;
-  document.getElementById('chart-tiempo').innerHTML = tiempoSorted.map(([k,v])=>`
-    <div class="bar-row">
-      <div class="bar-label" title="${k}">${k}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxT)*100}%;background:#4fc3d8"></div></div>
-      <div class="bar-count">${v}h</div>
-    </div>`).join('')||'<div style="color:var(--text2);font-size:11px">Sin datos de liberación</div>';
 }
 
 function renderBarChart(containerId, field, color, limit=8){
