@@ -804,8 +804,7 @@ canvas{flex:1;min-height:0;width:100% !important}
     <button class="cfg-tab" data-list="disciplinas">DISCIPLINAS</button>
     <button class="cfg-tab" data-list="responsables">RESPONSABLES</button>
     <button class="cfg-tab" data-list="tipos">TIPOS</button>
-    <button class="cfg-tab" data-list="liberadores">LIBERA</button>
-    <button class="cfg-tab" data-list="obs_lib">OBS. LIB.</button>
+    <button class="cfg-tab" data-list="resp_norm">RESP. NORM.</button>
     <button class="cfg-tab" data-list="correos">✉ CORREOS</button>
   </div>
   <div class="config-body">
@@ -849,22 +848,22 @@ canvas{flex:1;min-height:0;width:100% !important}
     <table>
       <thead>
         <tr>
-          <th data-col="id_registro">ID</th>
+          <th data-col="id_registro" style="width:60px">ID</th>
+          <th data-col="ts">FORZADO ↕</th>
           <th data-col="tag">TAG ↕</th>
           <th data-col="equipo">EQUIPO ↕</th>
           <th data-col="desc">DESCRIPCIÓN</th>
           <th data-col="area">ÁREA ↕</th>
           <th data-col="disciplina">DISCIPLINA</th>
-          <th data-col="tipo">TIPO</th>
+          <th data-col="tipo" style="display:none">TIPO</th>
           <th data-col="valor">VALOR</th>
           <th data-col="estado">ESTADO ↕</th>
           <th data-col="operador">SOLICITANTE ↕</th>
           <th data-col="responsable">RESPONSABLE ↕</th>
-          <th data-col="ts">FORZADO ↕</th>
           <th data-col="ts_norm">F. NORMALIZACIÓN ↕</th>
           <th data-col="aviso_ot">AVISO/OT SAP</th>
           <th data-col="resp_norm">RESP. NORMALIZACIÓN ↕</th>
-          <th id="col-acc" style="display:none">ACC.</th>
+          <th id="col-acc" style="display:none;width:80px">ACC.</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -1008,7 +1007,7 @@ canvas{flex:1;min-height:0;width:100% !important}
       <div class="form-grid fg-4">
         <div class="field">
           <label>ID Registro</label>
-          <input id="f-id" type="text" placeholder="F-2024-001">
+          <input id="f-id" type="number" min="1" step="1" placeholder="Ej: 1234" style="width:100px">
         </div>
         <div class="field" style="grid-column:span 2">
           <label>Tag / Señal *</label>
@@ -1295,8 +1294,7 @@ const CFG_DEFAULTS = {
   disciplinas: ['Electricidad','Instrumentación','DCS','Mecánicos','Metalurgia','GP','Operaciones','Planificación'],
   responsables: [],
   tipos: ['AI','AO','DI','DO','Lazo PID','Setpoint','Permisivo','Enclavamiento'],
-  liberadores: [],
-  obs_lib: ['Normalizado sin novedad','Equipo reparado y funcional','Prueba completada','Mantenimiento finalizado','Proceso estabilizado','Otro'],
+  resp_norm: [],   // lista de responsables normalización con correo
   correos: []
 };
 let cfgLists = JSON.parse(JSON.stringify(CFG_DEFAULTS));
@@ -1304,7 +1302,7 @@ let cfgActiveList = 'solicitantes';
 const CFG_LABELS = {
   solicitantes:'Solicitantes', areas:'Áreas', disciplinas:'Disciplinas',
   responsables:'Responsables', tipos:'Tipos de señal',
-  liberadores:'Quién libera', obs_lib:'Observaciones de liberación',
+  resp_norm:'Responsables de Normalización (Nombre | correo@dominio.com)',
   correos:'Correos para reporte semanal'
 };
 
@@ -1359,38 +1357,63 @@ document.querySelectorAll('.cfg-tab').forEach(tab => {
 function renderCfgList(){
   const list = cfgLists[cfgActiveList] || [];
   const wrap = document.getElementById('cfg-list');
-
-  // Placeholder especial para correos
-  const esCorreos = cfgActiveList === 'correos';
+  const esCorreos   = cfgActiveList === 'correos';
+  const esRespNorm  = cfgActiveList === 'resp_norm';
   const placeholder = document.getElementById('cfg-new-val');
+
   if(esCorreos){
     placeholder.placeholder = 'nombre@correo.com';
     placeholder.type = 'email';
+  } else if(esRespNorm){
+    placeholder.placeholder = 'Nombre Apellido | correo@dominio.com';
+    placeholder.type = 'text';
   } else {
     placeholder.placeholder = 'Agregar nuevo valor...';
     placeholder.type = 'text';
   }
 
   if(!list.length){
-    wrap.innerHTML = `<div class="cfg-empty">${esCorreos ? 'Sin correos configurados — agrega destinatarios del reporte semanal' : 'Sin valores — agrega el primero'}</div>`;
+    let msg = 'Sin valores — agrega el primero';
+    if(esCorreos)  msg = 'Sin correos configurados — agrega destinatarios del reporte semanal';
+    if(esRespNorm) msg = 'Agrega responsables con formato: Nombre | correo@dominio.com';
+    wrap.innerHTML = `<div class="cfg-empty">${msg}</div>`;
     return;
   }
-  wrap.innerHTML = list.map((v,i) => `
-    <div class="cfg-item">
+
+  wrap.innerHTML = list.map((v,i) => {
+    if(esRespNorm){
+      const parts = v.split('|');
+      const nombre = parts[0]?.trim() || v;
+      const correo = parts[1]?.trim() || '';
+      return `<div class="cfg-item">
+        <div style="flex:1">
+          <div style="font-size:13px;color:var(--text)">${nombre}</div>
+          ${correo ? `<div style="font-size:10px;color:var(--text2)">✉ ${correo}</div>` : ''}
+        </div>
+        <button class="cfg-item-del" onclick="cfgDelete(${i})" title="Eliminar">✕</button>
+      </div>`;
+    }
+    return `<div class="cfg-item">
       ${esCorreos ? `<span style="font-size:14px;margin-right:4px">✉</span>` : ''}
       <span class="cfg-item-name">${v}</span>
       <button class="cfg-item-del" onclick="cfgDelete(${i})" title="Eliminar">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function cfgAdd(){
   const val = document.getElementById('cfg-new-val').value.trim();
   if(!val){ toast('Escribe un valor primero','var(--red)'); return }
 
-  // Validar formato de correo
   if(cfgActiveList === 'correos'){
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if(!emailRegex.test(val)){ toast('Formato de correo inválido','var(--red)'); return }
+    if(!emailRegex.test(val)){ toast('Formato inválido — usa: nombre@correo.com','var(--red)'); return }
+  }
+  if(cfgActiveList === 'resp_norm'){
+    if(!val.includes('|')){ toast('Formato requerido: Nombre | correo@dominio.com','var(--amber)'); return }
+    const correo = val.split('|')[1]?.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if(!emailRegex.test(correo)){ toast('Correo inválido en el formato Nombre | correo@dominio.com','var(--red)'); return }
   }
 
   if(cfgLists[cfgActiveList].includes(val)){ toast('Ya existe ese valor','var(--amber)'); return }
@@ -1398,7 +1421,8 @@ function cfgAdd(){
   document.getElementById('cfg-new-val').value = '';
   renderCfgList();
   saveCfgToFirebase();
-  toast(cfgActiveList === 'correos' ? 'Correo agregado ✓' : 'Valor agregado ✓');
+  const msgs = { correos:'Correo agregado ✓', resp_norm:'Responsable agregado ✓' };
+  toast(msgs[cfgActiveList] || 'Valor agregado ✓');
 }
 
 function cfgDelete(idx){
@@ -1413,8 +1437,9 @@ function populateFormSelects(){
   setSelectOptions('f-area', cfgLists.areas);
   setSelectOptions('f-disciplina', cfgLists.disciplinas);
   setSelectOptions('f-tipo', cfgLists.tipos);
-  setSelectOptions('f-lib-quien', cfgLists.liberadores);
-  setSelectOptions('f-lib-obs', cfgLists.obs_lib);
+  // Responsable normalización — extraer solo el nombre (antes del |)
+  const respNormNames = (cfgLists.resp_norm||[]).map(v => v.split('|')[0].trim());
+  convertToSelect('f-resp-norm', respNormNames, 'Seleccionar responsable...');
   convertToSelect('f-oper', cfgLists.solicitantes, 'Seleccionar solicitante...');
   convertToSelect('f-responsable', cfgLists.responsables, 'Seleccionar responsable...');
 }
@@ -1633,16 +1658,22 @@ async function saveRecord(){
   const tag  = document.getElementById('f-tag').value.trim();
   const oper = document.getElementById('f-oper').value.trim();
   const resp = document.getElementById('f-responsable').value.trim();
+  const idVal = document.getElementById('f-id').value.trim();
   if(!tag){ toast('TAG es obligatorio', 'var(--red)'); return }
   if(!oper){ toast('Solicitante es obligatorio', 'var(--red)'); return }
   if(!resp){ toast('Responsable es obligatorio', 'var(--red)'); return }
+  if(idVal && (!/^\d+$/.test(idVal) || parseInt(idVal) < 1)){
+    toast('El ID debe ser un número entero positivo', 'var(--red)'); return
+  }
+  const tipo = document.getElementById('f-tipo').value;
+  if(!tipo){ toast('Tipo de señal es obligatorio', 'var(--red)'); return }
 
   const tsCreacion = document.getElementById('f-ts').value;
   const tsNorm     = document.getElementById('f-ts-norm').value;
   const estado     = calcularEstado(tsCreacion, tsNorm);
 
   const data = {
-    id_registro: document.getElementById('f-id').value.trim(),
+    id_registro: idVal ? parseInt(idVal) : '',
     tag,
     desc:        document.getElementById('f-desc').value.trim(),
     causa:       document.getElementById('f-causa').value.trim(),
@@ -1802,23 +1833,23 @@ function render(){
     const rc  = getRowClass(r.estado);
     const bc  = getBadgeClass(r.estado);
     const accCol = isEditor
-      ? `<td style="white-space:nowrap">
-          <button class="act-btn" title="Editar" style="color:var(--blue)" onclick="openModal('${r._id}')">✎</button>
-          <button class="act-btn" title="Eliminar" style="color:var(--red)" onclick="askDelete('${r._id}')">✕</button>
+      ? `<td style="white-space:nowrap;padding:6px 12px">
+          <button class="act-btn" title="Editar" style="color:var(--blue);font-size:16px;padding:6px 10px" onclick="openModal('${r._id}')">✎</button>
+          <button class="act-btn" title="Eliminar" style="color:var(--red);font-size:16px;padding:6px 10px" onclick="askDelete('${r._id}')">✕</button>
         </td>` : '';
     return `<tr class="${rc}">
-      <td class="td-id">${r.id_registro||'—'}</td>
+      <td class="td-id" style="width:60px;font-size:11px">${r.id_registro||'—'}</td>
+      <td class="td-small">${fmtTs(r.ts)}</td>
       <td class="td-tag">${r.tag}</td>
       <td style="font-size:11px;color:var(--text)">${r.equipo||'—'}</td>
       <td style="max-width:140px;font-size:11px;color:var(--text)" title="${r.desc||''}">${r.desc||'—'}</td>
       <td style="font-size:11px">${r.area||'—'}</td>
       <td style="color:var(--cyan);font-size:11px">${r.disciplina||'—'}</td>
-      <td class="td-small">${r.tipo||'—'}</td>
+      <td style="display:none">${r.tipo||'—'}</td>
       <td style="font-size:11px">${r.valor||'—'}</td>
       <td><span class="badge ${bc}">${r.estado}</span></td>
       <td style="font-size:11px">${r.operador||'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${r.responsable||'—'}</td>
-      <td class="td-small">${fmtTs(r.ts)}</td>
       <td class="td-small" style="${colorNorm(r.ts_norm)}">${r.ts_norm ? fmtTs(r.ts_norm) : '—'}</td>
       <td class="td-small">${r.aviso_ot||'—'}</td>
       <td style="font-size:11px">${r.resp_norm||'—'}</td>
