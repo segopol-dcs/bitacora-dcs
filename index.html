@@ -657,6 +657,25 @@ canvas{flex:1;min-height:0;width:100% !important}
 @keyframes load-anim{to{width:100%}}
 .loading-sub { font-size:11px; color:var(--text2); letter-spacing:2px }
 
+/* ── Historial semanal ───────────────────────────────── */
+.hist-cell {
+  border:1px solid var(--border); border-radius:var(--radius);
+  padding:6px 8px; background:#fff; cursor:pointer;
+  transition:border-color .15s, background .15s;
+}
+.hist-cell:hover { border-color:var(--blue); background:var(--blue-g) }
+.hist-cell.has-data { border-color:#a0c8e8; background:#f0f7ff }
+.hist-cell.semana-actual { border-color:var(--blue); background:var(--blue-g); font-weight:700 }
+.hist-cell-week  { font-family:var(--mono); font-size:10px; color:var(--text2) }
+.hist-cell-dates { font-size:9px; color:var(--text2); margin:1px 0 3px }
+.hist-cell-val   { font-family:var(--sans); font-size:18px; font-weight:700; color:var(--blue); line-height:1 }
+.hist-cell-src   { font-size:9px; color:var(--green); margin-top:2px }
+.hist-cell input {
+  width:50px; border:none; border-bottom:2px solid var(--blue);
+  font-family:var(--sans); font-size:18px; font-weight:700;
+  color:var(--blue); background:transparent; outline:none; padding:0;
+}
+
 /* ── Fila crítica ────────────────────────────────────── */
 tbody tr.r-critico {
   background: linear-gradient(90deg, rgba(217,53,53,.06) 0%, transparent 100%) !important;
@@ -820,6 +839,7 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
     <button class="cfg-tab" data-list="causas">CAUSAS</button>
     <button class="cfg-tab" data-list="resp_norm">RESP. NORM.</button>
     <button class="cfg-tab" data-list="correos">✉ CORREOS</button>
+    <button class="cfg-tab" data-list="__histsemanal__">📆 HIST. SEMANAL</button>
   </div>
   <div class="config-body">
     <div class="cfg-section-label" id="cfg-current-label">Solicitantes</div>
@@ -827,6 +847,23 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
     <div class="cfg-add-row">
       <input id="cfg-new-val" type="text" placeholder="Agregar nuevo valor..." onkeydown="if(event.key==='Enter')cfgAdd()">
       <button class="cfg-add-btn" onclick="cfgAdd()">+ AGREGAR</button>
+    </div>
+  </div>
+
+  <!-- Panel especial historial semanal -->
+  <div id="cfg-hist-panel" style="display:none;flex-direction:column;height:100%;overflow:hidden">
+    <div class="cfg-section-label" style="flex-shrink:0">
+      Historial Semanal — Total de Forzados por Semana
+      <span style="font-size:10px;color:var(--text2);font-weight:400;margin-left:8px">Los datos ingresados aquí se combinan con los registros reales en el gráfico anual</span>
+    </div>
+    <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:8px">
+      <label style="font-size:11px;color:var(--text2)">Año:</label>
+      <select id="hist-year-sel" style="font-family:var(--mono);font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);background:#fff"></select>
+      <span style="font-size:11px;color:var(--text2);margin-left:auto">Haz clic en cualquier semana para editar su valor</span>
+    </div>
+    <div id="hist-grid" style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;padding:4px 2px"></div>
+    <div style="flex-shrink:0;padding-top:8px;border-top:1px solid var(--border);margin-top:4px;display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="saveHistSemanal()" style="padding:6px 16px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer">💾 GUARDAR</button>
     </div>
   </div>
 </div>
@@ -1390,15 +1427,163 @@ async function saveCfgToFirebase(){
   populateFormSelects();
 }
 
+// ── Historial Semanal ──────────────────────────────────
+let histData = {}; // { "2026-W01": 12, "2026-W02": 8, ... }
+
+async function loadHistSemanal(){
+  if(!fbReady) return;
+  const { db, doc, getDoc } = window._fb;
+  try {
+    const snap = await getDoc(doc(db,'_config','hist_semanal'));
+    if(snap.exists()) histData = snap.data() || {};
+  } catch(e){ console.warn('Hist load error:',e) }
+}
+
+async function saveHistSemanal(){
+  // Leer todos los inputs del grid
+  document.querySelectorAll('.hist-cell input').forEach(inp => {
+    const key = inp.dataset.key;
+    const val = parseInt(inp.value);
+    if(!isNaN(val) && val >= 0) histData[key] = val;
+    else if(inp.value === '' || inp.value === '0') delete histData[key];
+  });
+  if(fbReady){
+    const { db, doc, setDoc } = window._fb;
+    try {
+      await setDoc(doc(db,'_config','hist_semanal'), histData);
+      toast('Historial semanal guardado ✓');
+    } catch(e){ toast('Error al guardar: '+e.message,'var(--red)') }
+  }
+  // Actualizar gráfico si está visible
+  if(document.getElementById('page-dashboard').classList.contains('active')){
+    renderChartTemporal();
+  }
+}
+
+function getWeekKey(year, week){
+  return `${year}-W${String(week).padStart(2,'0')}`;
+}
+
+// Calcular fecha inicio/fin de una semana ISO
+function getWeekRange(year, week){
+  const jan4 = new Date(year, 0, 4);
+  const startOfWeek1 = new Date(jan4);
+  startOfWeek1.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1);
+  const start = new Date(startOfWeek1);
+  start.setDate(startOfWeek1.getDate() + (week-1)*7);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const fmt = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+  return `${fmt(start)}–${fmt(end)}`;
+}
+
+function renderHistSemanal(){
+  const year = new Date().getFullYear();
+  const selYear = document.getElementById('hist-year-sel');
+
+  // Poblar selector de año si está vacío
+  if(!selYear.options.length){
+    for(let y = year; y >= year-3; y--){
+      const opt = document.createElement('option');
+      opt.value = y; opt.text = y;
+      selYear.appendChild(opt);
+    }
+    selYear.addEventListener('change', renderHistSemanal);
+  }
+  const selectedYear = parseInt(selYear.value) || year;
+  const weekActual = getISOWeek(new Date());
+  const grid = document.getElementById('hist-grid');
+
+  // Contar registros reales por semana del año seleccionado
+  const realCounts = {};
+  records.forEach(r => {
+    if(!r.ts) return;
+    const d = new Date(r.ts);
+    if(d.getFullYear() !== selectedYear) return;
+    const w = getISOWeek(d);
+    realCounts[w] = (realCounts[w]||0) + 1;
+  });
+
+  let html = '';
+  for(let w = 1; w <= 53; w++){
+    const key   = getWeekKey(selectedYear, w);
+    const range = getWeekRange(selectedYear, w);
+    const histVal = histData[key];
+    const realVal = selectedYear === year ? (realCounts[w]||0) : 0;
+    const total   = (histVal !== undefined ? histVal : 0) + realVal;
+    const isActual = selectedYear === year && w === weekActual;
+    const hasData  = histVal !== undefined || realVal > 0;
+
+    let sourceLabel = '';
+    if(histVal !== undefined && realVal > 0)
+      sourceLabel = `<div class="hist-cell-src">hist:${histVal} + real:${realVal}</div>`;
+    else if(realVal > 0)
+      sourceLabel = `<div class="hist-cell-src">↑ datos reales</div>`;
+    else if(histVal !== undefined)
+      sourceLabel = `<div class="hist-cell-src">↑ manual</div>`;
+
+    html += `<div class="hist-cell${isActual?' semana-actual':''}${hasData?' has-data':''}" onclick="editHistCell(this,'${key}',${histVal||0})">
+      <div class="hist-cell-week">S${String(w).padStart(2,'0')}</div>
+      <div class="hist-cell-dates">${range}</div>
+      <div class="hist-cell-val">${total || '—'}</div>
+      ${sourceLabel}
+    </div>`;
+  }
+  grid.innerHTML = html;
+
+  // Scroll a semana actual
+  if(selectedYear === year){
+    setTimeout(() => {
+      const cells = grid.querySelectorAll('.hist-cell');
+      if(cells[weekActual-1]) cells[weekActual-1].scrollIntoView({block:'center',behavior:'smooth'});
+    }, 100);
+  }
+}
+
+function editHistCell(cell, key, currentVal){
+  // Reemplazar valor por input
+  const valDiv = cell.querySelector('.hist-cell-val');
+  if(cell.querySelector('input')) return; // ya está editando
+  const inp = document.createElement('input');
+  inp.type = 'number'; inp.min = '0'; inp.step = '1';
+  inp.value = currentVal || '';
+  inp.dataset.key = key;
+  inp.placeholder = '0';
+  valDiv.innerHTML = '';
+  valDiv.appendChild(inp);
+  inp.focus(); inp.select();
+  inp.addEventListener('keydown', e => {
+    if(e.key === 'Enter') { inp.blur(); }
+    if(e.key === 'Escape'){ renderHistSemanal(); }
+  });
+  inp.addEventListener('blur', () => {
+    const val = parseInt(inp.value);
+    if(!isNaN(val) && val >= 0) histData[key] = val;
+    else delete histData[key];
+    renderHistSemanal();
+  });
+}
+
 // Tab switching
 document.querySelectorAll('.cfg-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     cfgActiveList = tab.dataset.list;
-    document.getElementById('cfg-current-label').textContent = CFG_LABELS[cfgActiveList];
-    document.getElementById('cfg-new-val').value = '';
-    renderCfgList();
+
+    if(cfgActiveList === '__histsemanal__'){
+      // Mostrar panel especial
+      document.getElementById('cfg-list').parentElement.style.display = 'none';
+      document.getElementById('cfg-hist-panel').style.display = 'flex';
+      renderHistSemanal();
+    } else {
+      // Mostrar panel normal
+      document.getElementById('cfg-list').parentElement.style.display = '';
+      document.getElementById('cfg-hist-panel').style.display = 'none';
+      document.getElementById('cfg-current-label').textContent = CFG_LABELS[cfgActiveList] || cfgActiveList;
+      document.getElementById('cfg-new-val').value = '';
+      renderCfgList();
+    }
   });
 });
 
@@ -1632,8 +1817,9 @@ function initFirebase(){
       console.warn('Firestore error:', err);
       initFallback();
     });
-    // Load config lists
+    // Load config lists and hist data
     loadCfgFromFirebase();
+    loadHistSemanal();
   } catch(e){ initFallback() }
 }
 
@@ -2089,40 +2275,55 @@ function renderChartTemporal(){
     // ── Vista todas las semanas del año ────────────────
     if(title) title.textContent = '📆 Registros por Semana — Año ' + new Date().getFullYear();
     const year = new Date().getFullYear();
-    const semanas = {};
+
+    // Contar registros reales por semana
+    const realCounts = {};
     records.forEach(r => {
       if(!r.ts) return;
       const d = new Date(r.ts);
       if(d.getFullYear() !== year) return;
       const w = getISOWeek(d);
-      semanas[w] = (semanas[w]||0) + 1;
+      realCounts[w] = (realCounts[w]||0) + 1;
     });
 
-    // Semanas 1..53 del año
-    const maxW = 53;
-    const labels = [], data = [];
     const semanaActual = getISOWeek(new Date());
-    for(let w = 1; w <= maxW; w++){
-      labels.push('S' + w);
-      data.push(semanas[w] || 0);
-    }
+    const labels = [], data = [], colors = [], borderColors = [];
 
-    // Color: semanas pasadas gris, semana actual azul, futuras más claro
-    const colors = data.map((v,i) => {
-      const w = i+1;
-      if(w < semanaActual)  return 'rgba(100,130,160,.5)';
-      if(w === semanaActual) return 'rgba(26,125,181,.95)';
-      return 'rgba(26,125,181,.2)';
-    });
+    for(let w = 1; w <= 53; w++){
+      const key = getWeekKey(year, w);
+      const histVal = histData[key] || 0;
+      const realVal = realCounts[w] || 0;
+      const total   = histVal + realVal;
+
+      labels.push('S' + w);
+      data.push(total);
+
+      // Color: semana actual azul intenso, pasadas con dato gris-azul, pasadas sin dato gris, futuras claro
+      if(w === semanaActual){
+        colors.push('rgba(26,125,181,.95)');
+        borderColors.push('rgba(26,125,181,1)');
+      } else if(w < semanaActual && total > 0){
+        colors.push('rgba(100,140,180,.65)');
+        borderColors.push('rgba(100,140,180,.8)');
+      } else if(w < semanaActual){
+        colors.push('rgba(180,190,200,.4)');
+        borderColors.push('rgba(180,190,200,.5)');
+      } else {
+        colors.push('rgba(26,125,181,.15)');
+        borderColors.push('rgba(26,125,181,.2)');
+      }
+    }
 
     chartTemporal = new Chart(ctxT, {
       type: 'bar',
       data: {
         labels,
         datasets:[{
-          label: 'Registros',
+          label: 'Total forzados',
           data,
           backgroundColor: colors,
+          borderColor: borderColors,
+          borderWidth: 1,
           borderRadius: 2,
         }]
       },
@@ -2132,9 +2333,17 @@ function renderChartTemporal(){
           legend:{display:false},
           tooltip:{callbacks:{
             title: t => `Semana ${t[0].dataIndex+1} — ${year}`,
-            label: t => ` ${t.raw} registro${t.raw!==1?'s':''}`
-          }},
-          annotation: {}
+            label: t => {
+              const w = t[0].dataIndex+1;
+              const key = getWeekKey(year, w);
+              const h = histData[key]||0;
+              const r = realCounts[w]||0;
+              const lines = [` Total: ${t.raw}`];
+              if(h > 0) lines.push(` Manual: ${h}`);
+              if(r > 0) lines.push(` Registros: ${r}`);
+              return lines;
+            }
+          }}
         },
         scales:{
           x:{ticks:{font:{size:8}, maxRotation:0, autoSkip:true, maxTicksLimit:26}, grid:{display:false}},
