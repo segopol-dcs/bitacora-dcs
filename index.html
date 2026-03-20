@@ -654,7 +654,17 @@ canvas{flex:1;min-height:0;width:100% !important}
 @keyframes load-anim{to{width:100%}}
 .loading-sub { font-size:11px; color:var(--text2); letter-spacing:2px }
 
-/* ── CONFIG PANEL ────────────────────────────────────── */
+/* ── Fila crítica ────────────────────────────────────── */
+tbody tr.r-critico {
+  background: linear-gradient(90deg, rgba(217,53,53,.06) 0%, transparent 100%) !important;
+}
+tbody tr.r-critico td:first-child::before {
+  content: '🔴';
+  margin-right: 4px;
+  font-size: 10px;
+}
+tbody tr.r-critico .td-tag { color: var(--red) !important; }
+tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
 .config-panel {
   position: fixed;
   top: 60px; right: 0;
@@ -854,6 +864,7 @@ canvas{flex:1;min-height:0;width:100% !important}
           <th data-col="tag">TAG ↕</th>
           <th data-col="equipo">EQUIPO ↕</th>
           <th data-col="desc">DESCRIPCIÓN</th>
+          <th data-col="causa">CAUSA</th>
           <th data-col="area">ÁREA ↕</th>
           <th data-col="disciplina">DISCIPLINA</th>
           <th data-col="tipo" style="display:none">TIPO</th>
@@ -862,7 +873,6 @@ canvas{flex:1;min-height:0;width:100% !important}
           <th data-col="operador">SOLICITANTE ↕</th>
           <th data-col="responsable">RESPONSABLE ↕</th>
           <th data-col="ts_norm">F. NORMALIZACIÓN ↕</th>
-          <th data-col="causa">CAUSA</th>
           <th data-col="aviso_ot">AVISO/OT SAP</th>
           <th data-col="resp_norm">RESP. NORMALIZACIÓN ↕</th>
           <th id="col-acc" style="display:none;width:80px">ACC.</th>
@@ -1036,6 +1046,13 @@ canvas{flex:1;min-height:0;width:100% !important}
             <option value="">— Seleccionar —</option>
           </select>
         </div>
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:12px;padding:10px 12px;background:#fef0f0;border:1px solid #f0a0a0;border-radius:var(--radius)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin:0">
+          <input type="checkbox" id="f-critico" style="width:16px;height:16px;cursor:pointer;accent-color:var(--red)">
+          <span style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--red);letter-spacing:1px">🔴 EQUIPO CRÍTICO</span>
+        </label>
+        <span style="font-size:11px;color:var(--text2)">Marcar si el equipo es crítico para el proceso — la fila se destacará en la tabla</span>
       </div>
     </div>
 
@@ -1578,6 +1595,7 @@ function openModal(id = null){
     document.getElementById('f-ts-norm').value      = r.ts_norm || '';
     document.getElementById('f-aviso-ot').value     = r.aviso_ot || '';
     document.getElementById('f-resp-norm').value    = r.resp_norm || '';
+    document.getElementById('f-critico').checked    = r.critico || false;
     actualizarEstadoDisplay();
   } else {
     clearForm();
@@ -1656,6 +1674,7 @@ function clearForm(){
   document.getElementById('f-disciplina').value = '';
   document.getElementById('f-tipo').value = '';
   document.getElementById('f-causa') && (document.getElementById('f-causa').value = '');
+  document.getElementById('f-critico').checked = false;
   // reset dynamic selects
   const fOper = document.getElementById('f-oper');
   const fResp = document.getElementById('f-responsable');
@@ -1705,6 +1724,7 @@ async function saveRecord(){
     ts_norm:     tsNorm,
     aviso_ot:    document.getElementById('f-aviso-ot').value.trim(),
     resp_norm:   document.getElementById('f-resp-norm').value.trim(),
+    critico:     document.getElementById('f-critico').checked,
   };
 
   if(fbReady){
@@ -1845,7 +1865,7 @@ function render(){
   };
 
   tbody.innerHTML = filtered.map(r => {
-    const rc  = getRowClass(r.estado);
+    const rc  = getRowClass(r.estado) + (r.critico ? ' r-critico' : '');
     const bc  = getBadgeClass(r.estado);
     const accCol = isEditor
       ? `<td style="white-space:nowrap;padding:6px 12px">
@@ -1857,7 +1877,8 @@ function render(){
       <td class="td-small">${fmtTs(r.ts)}</td>
       <td class="td-tag">${r.tag}</td>
       <td style="font-size:11px;color:var(--text)">${r.equipo||'—'}</td>
-      <td style="max-width:140px;font-size:11px;color:var(--text)" title="${r.desc||''}">${r.desc||'—'}</td>
+      <td style="max-width:130px;font-size:11px;color:var(--text)" title="${r.desc||''}">${r.desc||'—'}</td>
+      <td style="font-size:11px;max-width:110px;color:#7b2fa0" title="${r.causa||''}">${r.causa||'—'}</td>
       <td style="font-size:11px">${r.area||'—'}</td>
       <td style="color:var(--cyan);font-size:11px">${r.disciplina||'—'}</td>
       <td style="display:none">${r.tipo||'—'}</td>
@@ -1866,7 +1887,6 @@ function render(){
       <td style="font-size:11px">${r.operador||'—'}</td>
       <td style="font-size:11px;color:var(--cyan)">${r.responsable||'—'}</td>
       <td class="td-small" style="${colorNorm(r.ts_norm)}">${r.ts_norm||'—'}</td>
-      <td style="font-size:11px;max-width:130px" title="${r.causa||''}">${r.causa||'—'}</td>
       <td class="td-small">${r.aviso_ot||'—'}</td>
       <td style="font-size:11px">${r.resp_norm||'—'}</td>
       ${accCol}
