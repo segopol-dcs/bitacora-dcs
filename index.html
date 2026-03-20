@@ -515,9 +515,10 @@ input::placeholder, textarea::placeholder { color:var(--text2); opacity:.6 }
 .kpi-card::before {
   content:''; position:absolute; top:0; left:0; right:0; height:3px;
 }
-.kpi-card.kf::before{background:var(--amber)}
+.kpi-card.kf::before{background:var(--blue)}
 .kpi-card.kl::before{background:var(--green)}
-.kpi-card.kp::before{background:var(--red)}
+.kpi-card.kp::before{background:var(--amber)}
+.kpi-card.kv::before{background:var(--red)}
 .kpi-card.kt::before{background:var(--cyan)}
 .kpi-label {
   font-family:var(--sans); font-size:9px; font-weight:700;
@@ -526,9 +527,10 @@ input::placeholder, textarea::placeholder { color:var(--text2); opacity:.6 }
 .kpi-value {
   font-size:28px; font-family:var(--sans); font-weight:700; color:var(--blue); line-height:1;
 }
-.kpi-card.kf .kpi-value{color:var(--amber)}
+.kpi-card.kf .kpi-value{color:var(--blue)}
 .kpi-card.kl .kpi-value{color:var(--green)}
-.kpi-card.kp .kpi-value{color:var(--red)}
+.kpi-card.kp .kpi-value{color:var(--amber)}
+.kpi-card.kv .kpi-value{color:var(--red)}
 .kpi-card.kt .kpi-value{color:var(--cyan)}
 .kpi-sub{font-size:9px;color:var(--text2);margin-top:3px}
 .dash-main-row {
@@ -913,9 +915,9 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
       <div class="kpi-value" id="d-rechazados">0</div>
       <div class="kpi-sub">+48h sin fecha asignada</div>
     </div>
-    <div class="kpi-card" style="border-top-color:var(--red)">
+    <div class="kpi-card kv">
       <div class="kpi-label">VENCIDO</div>
-      <div class="kpi-value" id="d-vencido" style="color:var(--red)">0</div>
+      <div class="kpi-value" id="d-vencido">0</div>
       <div class="kpi-sub">fecha normaliz. superada</div>
     </div>
     <div class="kpi-card kt">
@@ -956,13 +958,16 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
       <div class="donut-wrap" style="justify-content:center;padding-top:8px">
         <svg width="110" height="110" viewBox="0 0 120 120" id="donut-svg">
           <circle cx="60" cy="60" r="46" fill="none" stroke="var(--border)" stroke-width="14"/>
-          <circle id="arc-f" cx="60" cy="60" r="46" fill="none" stroke="var(--blue)" stroke-width="14"
+          <circle id="arc-f" cx="60" cy="60" r="46" fill="none" stroke="var(--blue)"  stroke-width="14"
             stroke-dasharray="0 289" stroke-linecap="butt" transform="rotate(-90 60 60)"
             style="transition:stroke-dasharray .5s ease"/>
           <circle id="arc-l" cx="60" cy="60" r="46" fill="none" stroke="var(--green)" stroke-width="14"
             stroke-dasharray="0 289" stroke-linecap="butt" transform="rotate(-90 60 60)"
             style="transition:stroke-dasharray .5s ease"/>
-          <circle id="arc-p" cx="60" cy="60" r="46" fill="none" stroke="var(--red)" stroke-width="14"
+          <circle id="arc-p" cx="60" cy="60" r="46" fill="none" stroke="var(--amber)" stroke-width="14"
+            stroke-dasharray="0 289" stroke-linecap="butt" transform="rotate(-90 60 60)"
+            style="transition:stroke-dasharray .5s ease"/>
+          <circle id="arc-v" cx="60" cy="60" r="46" fill="none" stroke="var(--red)"   stroke-width="14"
             stroke-dasharray="0 289" stroke-linecap="butt" transform="rotate(-90 60 60)"
             style="transition:stroke-dasharray .5s ease"/>
           <text x="60" y="56" text-anchor="middle" font-family="Rajdhani" font-size="22" font-weight="700" fill="var(--blue)" id="donut-total">0</text>
@@ -971,7 +976,8 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
         <div class="donut-legend" style="margin-top:10px">
           <div class="legend-row"><span class="legend-dot" style="background:var(--blue)"></span><span>Temporal: <strong id="leg-f">0</strong></span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--green)"></span><span>Programado: <strong id="leg-l">0</strong></span></div>
-          <div class="legend-row"><span class="legend-dot" style="background:var(--red)"></span><span>Pend./Venc.: <strong id="leg-p">0</strong></span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--amber)"></span><span>Pendiente: <strong id="leg-p">0</strong></span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--red)"></span><span>Vencido: <strong id="leg-v">0</strong></span></div>
         </div>
       </div>
     </div>
@@ -1283,7 +1289,19 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('page-' + btn.dataset.page).classList.add('active');
-    if (btn.dataset.page === 'dashboard') renderDashboard();
+    if (btn.dataset.page === 'dashboard') {
+      // Esperar a que el DOM esté visible antes de renderizar y redimensionar
+      requestAnimationFrame(() => {
+        renderDashboard();
+        // Forzar resize en todos los charts de Chart.js
+        setTimeout(() => {
+          if(typeof Chart !== 'undefined'){
+            Chart.instances && Object.values(Chart.instances).forEach(c => c.resize());
+            [chartTemporal, chartAreaStack].forEach(c => { if(c) c.resize(); });
+          }
+        }, 50);
+      });
+    }
   });
 });
 
@@ -2016,7 +2034,9 @@ function renderDashboard(){
   document.getElementById('d-total').textContent = nT;
   document.getElementById('leg-f').textContent   = nTemp;
   document.getElementById('leg-l').textContent   = nProg;
-  document.getElementById('leg-p').textContent   = nPend + nVenc;
+  document.getElementById('leg-p').textContent   = nPend;
+  const legV = document.getElementById('leg-v');
+  if(legV) legV.textContent = nVenc;
   document.getElementById('donut-total').textContent = nT;
 
   // Días promedio desde forzado hasta fecha normalización planificada
@@ -2030,18 +2050,27 @@ function renderDashboard(){
   const dAvg = document.getElementById('d-avgdays');
   if(dAvg) dAvg.textContent = avgDays !== null ? avgDays + 'd' : '—';
 
-  // Donut
+  // Donut — 4 arcos independientes
   const circ = 2 * Math.PI * 46;
   if(nT > 0){
-    const pT=(nTemp/nT)*circ, pP=(nProg/nT)*circ, pPV=((nPend+nVenc)/nT)*circ;
-    const gF=document.getElementById('arc-f');
-    const gL=document.getElementById('arc-l');
-    const gP=document.getElementById('arc-p');
+    const pT  = (nTemp/nT)*circ;
+    const pPr = (nProg/nT)*circ;
+    const pPe = (nPend/nT)*circ;
+    const pV  = (nVenc/nT)*circ;
+    const gF = document.getElementById('arc-f');
+    const gL = document.getElementById('arc-l');
+    const gP = document.getElementById('arc-p');
+    const gV = document.getElementById('arc-v');
     gF.setAttribute('stroke-dasharray',`${pT} ${circ}`);
-    gL.setAttribute('stroke-dasharray',`${pP} ${circ}`);
+    gF.setAttribute('stroke-dashoffset','0');
+    gL.setAttribute('stroke-dasharray',`${pPr} ${circ}`);
     gL.setAttribute('stroke-dashoffset',`-${pT}`);
-    gP.setAttribute('stroke-dasharray',`${pPV} ${circ}`);
-    gP.setAttribute('stroke-dashoffset',`-${pT+pP}`);
+    gP.setAttribute('stroke-dasharray',`${pPe} ${circ}`);
+    gP.setAttribute('stroke-dashoffset',`-${pT+pPr}`);
+    if(gV){
+      gV.setAttribute('stroke-dasharray',`${pV} ${circ}`);
+      gV.setAttribute('stroke-dashoffset',`-${pT+pPr+pPe}`);
+    }
   }
 
   if(typeof Chart === 'undefined'){
@@ -2074,7 +2103,7 @@ function renderDashboard(){
       ]
     },
     options:{
-      responsive:true, maintainAspectRatio:false,
+      responsive:true, maintainAspectRatio:false, resizeDelay:0,
       plugins:{legend:{labels:{font:{size:10},boxWidth:10}},tooltip:{mode:'index'}},
       scales:{
         x:{ticks:{font:{size:9}},grid:{display:false}},
@@ -2104,7 +2133,7 @@ function renderDashboard(){
       ]
     },
     options:{
-      responsive:true, maintainAspectRatio:false,
+      responsive:true, maintainAspectRatio:false, resizeDelay:0,
       plugins:{legend:{labels:{font:{size:10},boxWidth:10}}},
       scales:{
         x:{stacked:true, ticks:{font:{size:9}},grid:{display:false}},
