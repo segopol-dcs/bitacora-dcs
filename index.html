@@ -704,7 +704,32 @@ canvas{flex:1;min-height:0;width:100% !important}
   color:rgba(255,255,255,.8); letter-spacing:1px; text-transform:uppercase;
 }
 
-/* ── MOVIMIENTOS PAGE ────────────────────────────────── */
+/* ── POWER APPS PAGE ─────────────────────────────────── */
+.pa-select {
+  padding:4px 8px; border:1px solid var(--border);
+  border-radius:var(--radius); font-family:var(--sans);
+  font-size:11px; font-weight:600; color:var(--text);
+  background:#fff; cursor:pointer; height:30px;
+  letter-spacing:.5px;
+}
+.pa-select:focus { outline:none; border-color:var(--blue) }
+.pa-table-wrap {
+  flex:1; overflow:auto;
+  scrollbar-width:thick;
+  scrollbar-color: var(--blue) #e0e8f0;
+}
+.pa-table-wrap::-webkit-scrollbar { width:10px; height:10px }
+.pa-table-wrap::-webkit-scrollbar-track { background:#e8f0f8; border-radius:4px }
+.pa-table-wrap::-webkit-scrollbar-thumb { background:var(--blue); border-radius:4px }
+.pa-table-wrap::-webkit-scrollbar-corner { background:#e8f0f8 }
+#pa-table th {
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  padding:7px 6px; font-size:9px;
+}
+#pa-table td {
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  padding:5px 6px; font-size:10px;
+}
 .mov-section {
   background:#fff; border:1px solid var(--border); border-radius:var(--radius);
   overflow:hidden; flex-shrink:0;
@@ -1243,18 +1268,30 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="page" id="page-powerapps" style="flex-direction:column;overflow:hidden">
 
-  <!-- Toolbar Power Apps -->
-  <div class="toolbar" style="flex-shrink:0">
+  <!-- Fila 1: búsqueda + estado + contador + actualizar -->
+  <div class="toolbar" style="flex-shrink:0;gap:6px">
     <div class="search-wrap">
       <span class="search-icon">⌕</span>
-      <input id="pa-search" type="text" placeholder="Buscar TAG, solicitante, área..." oninput="renderPowerApps()">
+      <input id="pa-search" type="text" placeholder="Buscar TAG, solicitante..." oninput="renderPowerApps()">
     </div>
-    <button class="filter-pill2 active" data-pa-estado="ALL" onclick="setPAEstado(this,'ALL')">TODOS</button>
-    <button class="filter-pill2" data-pa-estado="Aprobado" onclick="setPAEstado(this,'Aprobado')" style="border-color:#1a9e5c;color:#1a9e5c">● APROBADO</button>
-    <button class="filter-pill2" data-pa-estado="Pendiente" onclick="setPAEstado(this,'Pendiente')" style="">● PENDIENTE</button>
-    <button class="filter-pill2" data-pa-estado="Retirado" onclick="setPAEstado(this,'Retirado')">● RETIRADO</button>
+    <select id="pa-sel-estado" class="pa-select" onchange="renderPowerApps()">
+      <option value="">TODOS LOS ESTADOS</option>
+    </select>
+    <select id="pa-sel-area" class="pa-select" onchange="renderPowerApps()">
+      <option value="">TODAS LAS ÁREAS</option>
+    </select>
+    <select id="pa-sel-disc" class="pa-select" onchange="renderPowerApps()">
+      <option value="">TODAS LAS DISCIPLINAS</option>
+    </select>
+    <select id="pa-sel-tiempo" class="pa-select" onchange="renderPowerApps()">
+      <option value="">TODO EL PERÍODO</option>
+      <option value="7">Últimos 7 días</option>
+      <option value="14">Últimos 14 días</option>
+      <option value="30">Últimos 30 días</option>
+      <option value="90">Últimos 90 días</option>
+    </select>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      <div class="filter-counter" id="pa-counter-wrap">
+      <div class="filter-counter">
         <span id="pa-count">0</span>
         <span class="filter-counter-label">registros</span>
       </div>
@@ -1263,30 +1300,51 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
   </div>
 
   <!-- Estado de carga -->
-  <div id="pa-status" style="padding:8px 16px;font-size:11px;color:var(--text2);flex-shrink:0;font-family:var(--mono)"></div>
+  <div id="pa-status" style="padding:4px 16px;font-size:10px;color:var(--text2);flex-shrink:0;font-family:var(--mono)"></div>
 
-  <!-- Tabla -->
-  <div class="table-wrap" style="flex:1;overflow-y:auto">
-    <table id="pa-table">
+  <!-- Tabla con scrollbar grueso -->
+  <div class="table-wrap pa-table-wrap">
+    <table id="pa-table" style="table-layout:fixed;min-width:100%">
+      <colgroup>
+        <col style="width:50px">   <!-- ID -->
+        <col style="width:88px">   <!-- F.FRC -->
+        <col style="width:120px">  <!-- TAG -->
+        <col style="width:110px">  <!-- Equipo -->
+        <col style="width:130px">  <!-- Motivo -->
+        <col style="width:100px">  <!-- Área -->
+        <col style="width:95px">   <!-- Disciplina -->
+        <col style="width:70px">   <!-- Tipo -->
+        <col style="width:55px">   <!-- Crítico -->
+        <col style="width:130px">  <!-- Estado -->
+        <col style="width:110px">  <!-- Solicitante -->
+        <col style="width:100px">  <!-- SI Aprobador -->
+        <col style="width:100px">  <!-- JTO Aprobador -->
+        <col style="width:100px">  <!-- JTE Aprobador -->
+        <col style="width:95px">   <!-- DCS FRC -->
+        <col style="width:88px">   <!-- F.RET -->
+        <col style="width:110px">  <!-- Sol. RET -->
+        <col style="width:95px">   <!-- DCS RET -->
+        <col style="width:120px">  <!-- Tratamiento -->
+      </colgroup>
       <thead>
         <tr>
           <th>ID</th>
-          <th>F. SOLICITUD FRC</th>
+          <th>F. FRC</th>
           <th>TAG</th>
           <th>EQUIPO</th>
           <th>MOTIVO</th>
           <th>ÁREA</th>
           <th>DISCIPLINA</th>
           <th>TIPO</th>
-          <th>CRÍTICO</th>
+          <th>CRIT.</th>
           <th>ESTADO</th>
           <th>SOLICITANTE</th>
           <th>SI APROBADOR</th>
           <th>JTO APROBADOR</th>
           <th>JTE APROBADOR</th>
           <th>DCS EJEC. FRC</th>
-          <th>F. SOLICITUD RET</th>
-          <th>SOLICITANTE RET.</th>
+          <th>F. RET</th>
+          <th>SOL. RET.</th>
           <th>DCS EJEC. RET</th>
           <th>TRATAMIENTO</th>
         </tr>
@@ -3101,7 +3159,6 @@ const PA_SHEET_ID  = '1vf3MTkH7nxkUxeeiWTdaatskv1Clg_XEthOpby1DObQ';
 const PA_SHEET_URL = `https://docs.google.com/spreadsheets/d/${PA_SHEET_ID}/gviz/tq?tqx=out:json`;
 
 let paData     = [];
-let paEstado   = 'ALL';
 
 // Columnas del sheet (índice 0-based):
 // 0:ID 1:Hora inicio 2:Hora fin 3:Email Sol 4:Solicitante FRC 5:Crítico
@@ -3111,11 +3168,49 @@ let paEstado   = 'ALL';
 // 20:JTE Aprobador RET 21:DCS Ejec FRC 22:DCS Ejec RET 23:Motivo Retiro
 // 24:Fecha Solicitud RET 25:Fecha Solicitud FRC 26:Area 27:Tratamiento
 
-function setPAEstado(btn, estado){
-  document.querySelectorAll('[data-pa-estado]').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  paEstado = estado;
-  renderPowerApps();
+// Color map para estados Power Apps
+const PA_ESTADO_COLORS = {
+  'FRC Solicitado':     { bg:'#f0f0f0', color:'#555',    border:'#ccc' },
+  'FRC Aprobado':       { bg:'#e0f4f8', color:'#1a7a9a', border:'#90d0e8' },
+  'FRC Rechazado':      { bg:'#fde8ea', color:'#c0392b', border:'#f0a0a8' },
+  'FRC Aplicado':       { bg:'#fef9e0', color:'#b07d00', border:'#f0d060' },
+  'RET Solicitado':     { bg:'#f0f0f0', color:'#555',    border:'#ccc' },
+  'RET Aprobado':       { bg:'#e0f4f8', color:'#1a7a9a', border:'#90d0e8' },
+  'RET Ejecutado':      { bg:'#e6f7ee', color:'#1a7a4a', border:'#8ed4ae' },
+  'RET Rechazado':      { bg:'#fde8ea', color:'#c0392b', border:'#f0a0a8' },
+};
+
+// Obtener colores para un estado (match parcial)
+function getPAColor(estado){
+  const e = estado || '';
+  for(const [key, val] of Object.entries(PA_ESTADO_COLORS)){
+    if(e.toLowerCase().startsWith(key.toLowerCase())) return val;
+  }
+  return { bg:'#f0f0f0', color:'#666', border:'#ccc' };
+}
+
+function buildPAFilters(){
+  // Estado
+  const estados = [...new Set(paData.map(r => r.estado).filter(Boolean).sort())];
+  const selEstado = document.getElementById('pa-sel-estado');
+  if(selEstado){
+    selEstado.innerHTML = '<option value="">TODOS LOS ESTADOS</option>' +
+      estados.map(e => `<option value="${e}">${e}</option>`).join('');
+  }
+  // Área
+  const areas = [...new Set(paData.map(r => r.area).filter(Boolean).sort())];
+  const selArea = document.getElementById('pa-sel-area');
+  if(selArea){
+    selArea.innerHTML = '<option value="">TODAS LAS ÁREAS</option>' +
+      areas.map(a => `<option value="${a}">${a}</option>`).join('');
+  }
+  // Disciplina
+  const discs = [...new Set(paData.map(r => r.disciplina).filter(Boolean).sort())];
+  const selDisc = document.getElementById('pa-sel-disc');
+  if(selDisc){
+    selDisc.innerHTML = '<option value="">TODAS LAS DISCIPLINAS</option>' +
+      discs.map(d => `<option value="${d}">${d}</option>`).join('');
+  }
 }
 
 async function loadPowerAppsData(){
@@ -3167,6 +3262,7 @@ async function loadPowerAppsData(){
     }).filter(r => r.tag || r.id);
 
     status.textContent = `✅ ${paData.length} registros cargados — actualizado ${new Date().toLocaleTimeString('es-CL')}`;
+    buildPAFilters();
     renderPowerApps();
   } catch(e) {
     status.textContent = `❌ Error al cargar: ${e.message}`;
@@ -3175,28 +3271,36 @@ async function loadPowerAppsData(){
 }
 
 function renderPowerApps(){
-  const q = (document.getElementById('pa-search')?.value || '').toLowerCase();
+  const q         = (document.getElementById('pa-search')?.value || '').toLowerCase();
+  const selEstado = document.getElementById('pa-sel-estado')?.value || '';
+  const selArea   = document.getElementById('pa-sel-area')?.value || '';
+  const selDisc   = document.getElementById('pa-sel-disc')?.value || '';
+  const selTiempo = parseInt(document.getElementById('pa-sel-tiempo')?.value || '0');
+
+  const ahora = new Date();
+  const fechaLimite = selTiempo
+    ? new Date(ahora.getTime() - selTiempo * 86400000)
+    : null;
 
   const filtered = paData.filter(r => {
-    const ms = paEstado === 'ALL' || (r.estado||'').toLowerCase().includes(paEstado.toLowerCase());
-    const mq = !q || [r.tag,r.equipo,r.area,r.solicitante,r.disciplina,r.motivo,r.id,r.dcs_ejec_frc]
-      .join(' ').toLowerCase().includes(q);
-    return ms && mq;
+    if(selEstado && r.estado !== selEstado) return false;
+    if(selArea   && r.area !== selArea)     return false;
+    if(selDisc   && r.disciplina !== selDisc) return false;
+    if(fechaLimite && r.fecha_frc){
+      // intentar parsear fecha FRC
+      const d = new Date(r.fecha_frc.split('/').reverse().join('-'));
+      if(!isNaN(d) && d < fechaLimite) return false;
+    }
+    if(q && ![r.tag,r.equipo,r.area,r.solicitante,r.disciplina,r.motivo,r.id,r.dcs_ejec_frc,r.estado]
+      .join(' ').toLowerCase().includes(q)) return false;
+    return true;
   });
 
   document.getElementById('pa-count').textContent = filtered.length;
 
   const getBadgePA = (estado) => {
-    const e = (estado||'').toLowerCase();
-    if(e.includes('aprobado') || e.includes('activo'))
-      return `<span class="badge" style="background:#e6f7ee;color:#1a7a4a;border:1px solid #8ed4ae">${estado}</span>`;
-    if(e.includes('pendiente') || e.includes('espera'))
-      return `<span class="badge" style="background:#fff3e0;color:#c47e00;border:1px solid #f0c060">${estado}</span>`;
-    if(e.includes('retir') || e.includes('cerrad') || e.includes('finaliz'))
-      return `<span class="badge" style="background:#f0f0f0;color:#666;border:1px solid #ccc">${estado}</span>`;
-    if(e.includes('rechaz'))
-      return `<span class="badge" style="background:#fef0f0;color:#d93535;border:1px solid #f0a0a0">${estado}</span>`;
-    return `<span class="badge" style="background:#f0f0f0;color:#666">${estado||'—'}</span>`;
+    const c = getPAColor(estado);
+    return `<span class="badge" style="background:${c.bg};color:${c.color};border:1px solid ${c.border};white-space:nowrap">${estado||'—'}</span>`;
   };
 
   const tbody = document.getElementById('pa-tbody');
@@ -3212,14 +3316,7 @@ function renderPowerApps(){
   tbody.innerHTML = filtered.map(r => {
     const esCritico = (r.critico||'').toLowerCase().includes('s') || r.critico === 'true' || r.critico === '1';
     const rowStyle  = esCritico ? 'background:#fff5f5' : '';
-    const borderL   = (() => {
-      const e = (r.estado||'').toLowerCase();
-      if(e.includes('aprobado')||e.includes('activo')) return '#1a9e5c';
-      if(e.includes('pendiente')||e.includes('espera')) return '#f0a500';
-      if(e.includes('retir')||e.includes('cerrad'))    return '#888';
-      if(e.includes('rechaz'))                          return '#d93535';
-      return '#ddd';
-    })();
+    const borderL = getPAColor(r.estado).color;
     return `<tr style="${rowStyle};border-left:3px solid ${borderL}">
       <td class="td-id">${r.id||'—'}</td>
       <td class="td-small">${r.fecha_frc||'—'}</td>
