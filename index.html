@@ -3124,42 +3124,47 @@ async function loadPowerAppsData(){
   try {
     const resp = await fetch(PA_SHEET_URL);
     const text = await resp.text();
-    // La respuesta viene envuelta: /*O_o*/google.visualization.Query.setResponse({...})
-    const json = JSON.parse(text.replace(/^.*?google\.visualization\.Query\.setResponse\(/, '').replace(/\);?\s*$/, ''));
-    const rows = json.table.rows;
+    // La respuesta es JSONP: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+    // Extraer solo el JSON del interior
+    const jsonStr = text
+      .replace(/^\/\*.*?\*\/\s*/s, '')           // quitar comentario inicial /*O_o*/
+      .replace(/^google\.visualization\.Query\.setResponse\(/, '') // quitar función
+      .replace(/\);\s*$/, '');                    // quitar cierre );
+    const json = JSON.parse(jsonStr);
+    const rows = json.table.rows || [];
     paData = rows.map(row => {
       const c = row.c || [];
-      const get = i => c[i]?.v !== null && c[i]?.v !== undefined ? String(c[i].v) : '';
-      const getFmt = i => c[i]?.f || get(i); // formatted value
+      const get  = i => (c[i]?.v !== null && c[i]?.v !== undefined) ? String(c[i].v) : '';
+      const getFmt = i => c[i]?.f ? String(c[i].f) : get(i);
       return {
-        id:           get(0),
-        hora_ini:     getFmt(1),
-        hora_fin:     getFmt(2),
-        solicitante:  get(4),
-        critico:      get(5),
-        tipo:         get(6),
-        si_aprobador: get(7),
-        jto_aprobador:get(8),
-        jte_aprobador:get(9),
-        tag:          get(10),
-        equipo:       get(11),
-        disciplina:   get(12),
-        motivo:       get(13),
-        detalle:      get(14),
-        estado:       get(15),
-        sol_ret:      get(16),
-        si_apro_ret:  get(17),
-        jto_apro_ret: get(19),
-        jte_apro_ret: get(20),
-        dcs_ejec_frc: get(21),
-        dcs_ejec_ret: get(22),
-        motivo_ret:   get(23),
-        fecha_ret:    getFmt(24),
-        fecha_frc:    getFmt(25),
-        area:         get(26),
-        tratamiento:  get(27),
+        id:            get(0),
+        hora_ini:      getFmt(1),
+        hora_fin:      getFmt(2),
+        solicitante:   get(4),
+        critico:       get(5),
+        tipo:          get(6),
+        si_aprobador:  get(7),
+        jto_aprobador: get(8),
+        jte_aprobador: get(9),
+        tag:           get(10),
+        equipo:        get(11),
+        disciplina:    get(12),
+        motivo:        get(13),
+        detalle:       get(14),
+        estado:        get(15),
+        sol_ret:       get(16),
+        si_apro_ret:   get(17),
+        jto_apro_ret:  get(19),
+        jte_apro_ret:  get(20),
+        dcs_ejec_frc:  get(21),
+        dcs_ejec_ret:  get(22),
+        motivo_ret:    get(23),
+        fecha_ret:     getFmt(24),
+        fecha_frc:     getFmt(25),
+        area:          get(26),
+        tratamiento:   get(27),
       };
-    }).filter(r => r.tag || r.id); // descartar filas vacías
+    }).filter(r => r.tag || r.id);
 
     status.textContent = `✅ ${paData.length} registros cargados — actualizado ${new Date().toLocaleTimeString('es-CL')}`;
     renderPowerApps();
