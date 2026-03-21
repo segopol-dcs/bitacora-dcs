@@ -657,7 +657,56 @@ canvas{flex:1;min-height:0;width:100% !important}
 @keyframes load-anim{to{width:100%}}
 .loading-sub { font-size:11px; color:var(--text2); letter-spacing:2px }
 
-/* ── Historial semanal ───────────────────────────────── */
+/* ── MOVIMIENTOS PAGE ────────────────────────────────── */
+.mov-section {
+  background:#fff; border:1px solid var(--border); border-radius:var(--radius);
+  overflow:hidden; flex-shrink:0;
+}
+.mov-section-header {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px; background:var(--blue-g);
+  border-bottom:2px solid var(--blue);
+}
+.mov-section-icon { font-size:16px }
+.mov-section-title {
+  font-family:var(--sans); font-size:12px; font-weight:700;
+  letter-spacing:2px; color:var(--blue); text-transform:uppercase; flex:1;
+}
+.mov-badge-count {
+  background:var(--blue); color:#fff; font-family:var(--mono);
+  font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px;
+}
+.mov-subsection { padding:12px 16px; border-bottom:1px solid var(--border) }
+.mov-subsection:last-child { border-bottom:none }
+.mov-subsection-title {
+  font-family:var(--sans); font-size:10px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;
+}
+.mov-added   { color:var(--blue) }
+.mov-removed { color:#9b59b6 }
+
+/* Tarjeta de movimiento */
+.mov-card {
+  display:flex; align-items:flex-start; gap:12px;
+  padding:8px 10px; border-radius:var(--radius);
+  border:1px solid var(--border); margin-bottom:6px;
+  background:#fff; transition:border-color .15s;
+}
+.mov-card:last-child { margin-bottom:0 }
+.mov-card.added-card  { border-left:3px solid var(--blue) }
+.mov-card.removed-card{ border-left:3px solid #9b59b6 }
+.mov-card.critico-card{ background:#fff5f5 }
+.mov-card-tag {
+  font-family:var(--mono); font-size:12px; font-weight:700;
+  color:var(--blue); min-width:130px; flex-shrink:0;
+}
+.mov-card-info { flex:1; font-size:11px; color:var(--text) }
+.mov-card-meta { font-size:10px; color:var(--text2); margin-top:2px }
+.mov-card-state { flex-shrink:0; text-align:right }
+.mov-empty {
+  font-family:var(--mono); font-size:11px; color:var(--text2);
+  padding:8px 0; text-align:center;
+}
 .hist-cell {
   border:1px solid var(--border); border-radius:var(--radius);
   padding:6px 8px; background:#fff; cursor:pointer;
@@ -810,6 +859,7 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
     <nav class="hdr-nav">
       <button class="nav-btn active" data-page="bitacora">BITÁCORA</button>
       <button class="nav-btn" data-page="dashboard">DASHBOARD</button>
+      <button class="nav-btn" data-page="movimientos">MOVIMIENTOS</button>
     </nav>
   </div>
   <div class="hdr-right">
@@ -1055,8 +1105,54 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
 </div>
 
 <!-- ══════════════════════════════════════════════════════ -->
-<!--  MODAL: FORM (nuevo / editar)                          -->
+<!--  PAGE: MOVIMIENTOS                                     -->
 <!-- ══════════════════════════════════════════════════════ -->
+<div class="page" id="page-movimientos" style="flex-direction:column;overflow-y:auto;padding:16px;gap:16px">
+
+  <!-- Header con selector de turno y semana -->
+  <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+    <div style="font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:2px;color:var(--blue)">
+      📋 MOVIMIENTOS DEL PERÍODO
+    </div>
+    <div style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text2)" id="mov-periodo-label"></div>
+    <button onclick="renderMovimientos()" style="padding:4px 12px;border:1px solid var(--border);background:var(--blue-g);color:var(--blue);font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;border-radius:var(--radius)">↻ ACTUALIZAR</button>
+  </div>
+
+  <!-- Turno actual -->
+  <div class="mov-section">
+    <div class="mov-section-header">
+      <span class="mov-section-icon">🕐</span>
+      <span class="mov-section-title" id="mov-turno-title">TURNO ACTUAL</span>
+      <span class="mov-badge-count" id="mov-turno-count">0</span>
+    </div>
+    <div class="mov-subsection">
+      <div class="mov-subsection-title mov-added">▲ AÑADIDOS EN ESTE TURNO</div>
+      <div id="mov-turno-added"></div>
+    </div>
+    <div class="mov-subsection">
+      <div class="mov-subsection-title mov-removed">▼ PROGRAMADOS PARA NORMALIZACIÓN EN ESTE TURNO</div>
+      <div id="mov-turno-removed"></div>
+    </div>
+  </div>
+
+  <!-- Semana actual Mar→Lun -->
+  <div class="mov-section">
+    <div class="mov-section-header">
+      <span class="mov-section-icon">📅</span>
+      <span class="mov-section-title" id="mov-semana-title">SEMANA ACTUAL</span>
+      <span class="mov-badge-count" id="mov-semana-count">0</span>
+    </div>
+    <div class="mov-subsection">
+      <div class="mov-subsection-title mov-added">▲ AÑADIDOS ESTA SEMANA</div>
+      <div id="mov-semana-added"></div>
+    </div>
+    <div class="mov-subsection">
+      <div class="mov-subsection-title mov-removed">▼ PROGRAMADOS PARA NORMALIZACIÓN ESTA SEMANA</div>
+      <div id="mov-semana-removed"></div>
+    </div>
+  </div>
+
+</div>
 <div class="overlay" id="modal-form">
 <div class="modal">
   <div class="modal-header">
@@ -1328,7 +1424,6 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('page-' + btn.dataset.page).classList.add('active');
     if (btn.dataset.page === 'dashboard') {
-      // Esperar a que el DOM esté visible antes de renderizar y redimensionar
       requestAnimationFrame(() => {
         renderDashboard();
         setTimeout(() => {
@@ -1338,6 +1433,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         }, 50);
       });
     }
+    if (btn.dataset.page === 'movimientos') renderMovimientos();
   });
 });
 
@@ -1793,6 +1889,8 @@ function initFirebase(){
       render();
       if(document.getElementById('page-dashboard').classList.contains('active'))
         renderDashboard();
+      if(document.getElementById('page-movimientos').classList.contains('active'))
+        renderMovimientos();
     }, err => {
       console.warn('Firestore error:', err);
       initFallback();
@@ -2445,6 +2543,103 @@ function renderBarChart(containerId, field, color, limit=8){
       <div class="bar-count">${v}</div>
     </div>`
   ).join('') || '<div style="color:var(--text2);font-size:11px">Sin datos</div>';
+}
+
+// ── Movimientos ────────────────────────────────────────
+function renderMovimientos(){
+  if(!document.getElementById('page-movimientos').classList.contains('active')) return;
+
+  const ahora = new Date();
+
+  // ── Calcular inicio del turno actual ──────────────────
+  const horaCL = ahora.getHours();
+  const iniciaTurnoDia   = new Date(ahora); iniciaTurnoDia.setHours(7,0,0,0);
+  const iniciaTurnoNoche = new Date(ahora); iniciaTurnoNoche.setHours(19,0,0,0);
+  let inicioTurno, nombreTurno;
+  if(horaCL >= 7 && horaCL < 19){
+    inicioTurno = iniciaTurnoDia;
+    nombreTurno = 'TURNO DÍA — ' + inicioTurno.toLocaleDateString('es-CL',{weekday:'short',day:'2-digit',month:'2-digit'}) + ' 07:00';
+  } else if(horaCL >= 19){
+    inicioTurno = iniciaTurnoNoche;
+    nombreTurno = 'TURNO NOCHE — ' + inicioTurno.toLocaleDateString('es-CL',{weekday:'short',day:'2-digit',month:'2-digit'}) + ' 19:00';
+  } else {
+    // Madrugada — turno noche del día anterior
+    inicioTurno = new Date(ahora); inicioTurno.setDate(inicioTurno.getDate()-1); inicioTurno.setHours(19,0,0,0);
+    nombreTurno = 'TURNO NOCHE — ' + inicioTurno.toLocaleDateString('es-CL',{weekday:'short',day:'2-digit',month:'2-digit'}) + ' 19:00';
+  }
+
+  // ── Calcular inicio de semana laboral (martes) ────────
+  const diaSemana = ahora.getDay(); // 0=Dom 2=Mar
+  const diasDesdeMartes = (diaSemana - 2 + 7) % 7;
+  const inicioSemana = new Date(ahora);
+  inicioSemana.setDate(ahora.getDate() - diasDesdeMartes);
+  inicioSemana.setHours(0,0,0,0);
+  const finSemana = new Date(inicioSemana); finSemana.setDate(inicioSemana.getDate()+6); finSemana.setHours(23,59,59,999);
+
+  const fmtFecha = d => new Date(d).toLocaleDateString('es-CL',{weekday:'short',day:'2-digit',month:'2-digit'});
+  const semanaLabel = `${fmtFecha(inicioSemana)} → ${fmtFecha(finSemana)}`;
+
+  document.getElementById('mov-turno-title').textContent  = nombreTurno;
+  document.getElementById('mov-semana-title').textContent = 'SEMANA: ' + semanaLabel;
+  document.getElementById('mov-periodo-label').textContent = 'Actualizado: ' + ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+
+  // Recalcular estados
+  records.forEach(r => { r.estado = calcularEstado(r.ts, r.ts_norm); });
+
+  // ── TURNO: añadidos (ts dentro del turno) ─────────────
+  const turnoAdded   = records.filter(r => r.ts && new Date(r.ts) >= inicioTurno && new Date(r.ts) <= ahora);
+  // ── TURNO: programados (ts_norm dentro del turno) ─────
+  const turnoRemoved = records.filter(r => r.ts_norm && new Date(r.ts_norm) >= inicioTurno && new Date(r.ts_norm) <= ahora);
+
+  // ── SEMANA: añadidos ──────────────────────────────────
+  const semAdded   = records.filter(r => r.ts && new Date(r.ts) >= inicioSemana && new Date(r.ts) <= ahora);
+  // ── SEMANA: programados para normalización ────────────
+  const semRemoved = records.filter(r => r.ts_norm && new Date(r.ts_norm) >= inicioSemana && new Date(r.ts_norm) <= ahora);
+
+  // Contadores
+  document.getElementById('mov-turno-count').textContent  = turnoAdded.length + turnoRemoved.length;
+  document.getElementById('mov-semana-count').textContent = semAdded.length + semRemoved.length;
+
+  // Renderizar listas
+  renderMovList('mov-turno-added',   turnoAdded,   'added');
+  renderMovList('mov-turno-removed', turnoRemoved, 'removed');
+  renderMovList('mov-semana-added',   semAdded,    'added');
+  renderMovList('mov-semana-removed', semRemoved,  'removed');
+}
+
+function renderMovList(containerId, lista, tipo){
+  const container = document.getElementById(containerId);
+  if(!lista.length){
+    container.innerHTML = `<div class="mov-empty">Sin registros en este período</div>`;
+    return;
+  }
+  const fmtTs = ts => ts ? new Date(ts).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
+
+  container.innerHTML = lista.map(r => {
+    const bc  = getBadgeClass(r.estado);
+    const esCritico = r.critico ? '🔴 ' : '';
+    const fechaRef  = tipo === 'added' ? fmtTs(r.ts) : fmtDate(r.ts_norm);
+    const labelFecha = tipo === 'added' ? 'Registrado' : 'F.Norm.';
+    return `<div class="mov-card ${tipo}-card ${r.critico?'critico-card':''}">
+      <div class="mov-card-tag">${esCritico}${r.tag||'—'}</div>
+      <div class="mov-card-info">
+        <div>${r.desc||'—'} ${r.equipo?'<span style="color:var(--text2)">· '+r.equipo+'</span>':''}</div>
+        <div class="mov-card-meta">
+          ${r.area||'—'} · ${r.disciplina||'—'} · ${r.causa||'—'}
+          ${tipo==='removed' && r.resp_norm ? ' · Resp.Norm: <strong>'+r.resp_norm+'</strong>' : ''}
+          ${tipo==='removed' && r.aviso_ot  ? ' · OT: '+r.aviso_ot : ''}
+        </div>
+        <div class="mov-card-meta" style="color:var(--text2)">
+          Autorizador: ${r.responsable||'—'} · Solicitante: ${r.operador||'—'}
+        </div>
+      </div>
+      <div class="mov-card-state">
+        <span class="badge ${bc}">${r.estado}</span>
+        <div style="font-size:10px;color:var(--text2);margin-top:4px">${labelFecha}: ${fechaRef}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── Export ─────────────────────────────────────────────
