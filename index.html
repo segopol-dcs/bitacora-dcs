@@ -2843,28 +2843,164 @@ function exportTXT(){
 }
 
 function exportHTML(){
-  const rows = expData().map(r =>
-    `<tr><td>${r.id_registro||''}</td><td><b>${r.tag}</b></td><td>${r.equipo||''}</td>
-    <td>${r.area||''}</td><td>${r.disciplina||''}</td>
-    <td>${r.estado}</td><td>${r.operador||''}</td><td>${r.responsable||''}</td>
-    <td>${(r.ts||'').replace('T',' ')}</td>
-    <td>${(r.ts_norm||'').replace('T',' ')}</td><td>${r.aviso_ot||''}</td><td>${r.resp_norm||''}</td></tr>`
-  ).join('');
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Bitácora DCS — ${new Date().toLocaleDateString('es-CL')}</title>
-  <style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}
-  h1{font-size:18px;margin-bottom:4px;color:#1a7db5}p{color:#666;font-size:11px;margin-bottom:16px}
-  table{width:100%;border-collapse:collapse}
-  th{background:#1a7db5;color:#fff;padding:8px;text-align:left;font-size:11px}
-  td{padding:7px 8px;border-bottom:1px solid #e0e0e0;font-size:11px}
-  tr:nth-child(even){background:#f8f8f8}</style></head>
-  <body><h1>BITÁCORA DE FORZADOS — DCS CENTINELA</h1>
-  <p>Generado: ${new Date().toLocaleString('es-CL')} | Total: ${expData().length} registros</p>
-  <table><thead><tr>
-  <th>ID</th><th>Tag</th><th>Equipo</th><th>Área</th><th>Disciplina</th>
-  <th>Estado</th><th>Solicitante</th><th>Autorizador</th><th>Forzado</th>
-  <th>F.Normalización</th><th>Aviso/OT SAP</th><th>Resp.Normalización</th>
-  </tr></thead><tbody>${rows}</tbody></table></body></html>`;
+  const data = expData();
+  const ahora = new Date().toLocaleString('es-CL');
+  const fecha = new Date().toLocaleDateString('es-CL');
+
+  const estadoBadge = (estado) => {
+    const map = {
+      'TEMPORAL':   { bg:'#e6f2fa', color:'#1a6090', border:'#a0c8e8' },
+      'PROGRAMADO': { bg:'#e6f7ee', color:'#1a7a4a', border:'#8ed4ae' },
+      'PENDIENTE':  { bg:'#fff3e0', color:'#c47e00', border:'#f0c060' },
+      'VENCIDO':    { bg:'#fef0f0', color:'#d93535', border:'#f0a0a0' },
+    };
+    const s = map[estado] || { bg:'#f0f0f0', color:'#666', border:'#ccc' };
+    return `<span style="padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;background:${s.bg};color:${s.color};border:1px solid ${s.border}">${estado||'—'}</span>`;
+  };
+
+  const rows = data.map(r => {
+    const isCritico = r.critico === true || r.critico === 'true';
+    const rowBg = isCritico ? 'background:#fff5f5' : '';
+    const borderL = {
+      'TEMPORAL':   '#1a7db5',
+      'PROGRAMADO': '#1a9e5c',
+      'PENDIENTE':  '#f0a500',
+      'VENCIDO':    '#d93535',
+    }[r.estado] || '#ddd';
+
+    return `<tr style="${rowBg};border-left:3px solid ${borderL}">
+      <td style="font-family:monospace;font-size:10px;color:#666">${r.id_registro||'—'}</td>
+      <td style="font-size:10px;color:#888">${r.ts ? r.ts.slice(0,10) : '—'}</td>
+      <td style="font-weight:700;color:#1a7db5">${r.tag||'—'}${isCritico?' <span style="color:#d93535">🔴</span>':''}</td>
+      <td style="font-size:11px">${r.equipo||'—'}</td>
+      <td style="max-width:160px;font-size:11px">${r.desc||'—'}</td>
+      <td style="color:#7b2fa0;font-size:11px">${r.causa||'—'}</td>
+      <td style="font-size:11px">${r.area||'—'}</td>
+      <td style="color:#2196b8;font-size:11px">${r.disciplina||'—'}</td>
+      <td>${estadoBadge(r.estado)}</td>
+      <td style="font-size:11px">${r.operador||'—'}</td>
+      <td style="font-size:11px;color:#2196b8">${r.responsable||'—'}</td>
+      <td style="font-size:10px;${r.ts_norm && new Date(r.ts_norm)<new Date()?'color:#d93535;font-weight:700':r.ts_norm?'color:#1a9e5c':''}">${r.ts_norm||'—'}</td>
+      <td style="font-size:11px">${r.aviso_ot||'—'}</td>
+      <td style="font-size:11px">${r.resp_norm||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Contadores por estado
+  const nTemp = data.filter(r=>r.estado==='TEMPORAL').length;
+  const nProg = data.filter(r=>r.estado==='PROGRAMADO').length;
+  const nPend = data.filter(r=>r.estado==='PENDIENTE').length;
+  const nVenc = data.filter(r=>r.estado==='VENCIDO').length;
+  const nCrit = data.filter(r=>r.critico===true||r.critico==='true').length;
+
+  const kpi = (val, label, color) =>
+    `<div style="flex:1;min-width:80px;border:1px solid #dde;border-radius:6px;padding:10px 14px;text-align:center;border-top:3px solid ${color}">
+      <div style="font-size:26px;font-weight:700;color:${color}">${val}</div>
+      <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-top:3px">${label}</div>
+    </div>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bitácora DCS — ${fecha}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:'Rajdhani',Arial,sans-serif; font-size:12px; color:#2c3e50; background:#f4f6f9; }
+  .page { max-width:1400px; margin:0 auto; padding:20px; }
+
+  /* Header */
+  .header {
+    background:#fff; border-bottom:3px solid #1a7db5;
+    padding:14px 20px; margin-bottom:20px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,.08);
+  }
+  .header-title { font-size:20px; font-weight:700; color:#1a7db5; letter-spacing:2px }
+  .header-sub { font-size:11px; color:#888; margin-top:3px }
+  .header-meta { text-align:right; font-family:'Share Tech Mono',monospace; font-size:10px; color:#888 }
+
+  /* KPIs */
+  .kpis { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap }
+
+  /* Tabla */
+  .table-wrap { background:#fff; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,.08); overflow:hidden }
+  table { width:100%; border-collapse:collapse }
+  thead tr { background:#e8f0f8; border-bottom:2px solid #1a7db5 }
+  th {
+    padding:8px 8px; text-align:left;
+    font-family:'Rajdhani',Arial,sans-serif; font-size:10px;
+    font-weight:700; letter-spacing:1.5px; color:#1a7db5;
+    text-transform:uppercase; white-space:nowrap;
+  }
+  td { padding:7px 8px; border-bottom:1px solid #eef0f4; vertical-align:middle }
+  tbody tr:hover { background:#f8fafc }
+
+  /* Footer */
+  .footer { margin-top:16px; text-align:center; font-size:10px; color:#aaa; font-family:'Share Tech Mono',monospace }
+  @media print {
+    body { background:#fff }
+    .header, .table-wrap { box-shadow:none }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div>
+      <div class="header-title">BITÁCORA DE FORZADOS — DCS</div>
+      <div class="header-sub">Centinela Antofagasta Minerals</div>
+    </div>
+    <div class="header-meta">
+      Generado: ${ahora}<br>
+      ${data.length} registros exportados
+    </div>
+  </div>
+
+  <div class="kpis">
+    ${kpi(nTemp,'Temporal','#1a7db5')}
+    ${kpi(nProg,'Programado','#1a9e5c')}
+    ${kpi(nPend,'Pendiente','#f0a500')}
+    ${kpi(nVenc,'Vencido','#d93535')}
+    ${kpi(nCrit,'Críticos','#c0392b')}
+    ${kpi(data.length,'Total','#2196b8')}
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Forzado</th>
+          <th>TAG</th>
+          <th>Equipo</th>
+          <th>Descripción</th>
+          <th>Causa</th>
+          <th>Área</th>
+          <th>Disciplina</th>
+          <th>Estado</th>
+          <th>Solicitante</th>
+          <th>Autorizador</th>
+          <th>F.Normalización</th>
+          <th>OT/Aviso SAP</th>
+          <th>Resp.Normalización</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    Bitácora DCS Centinela — Antofagasta Minerals · Exportado ${ahora}
+  </div>
+
+</div>
+</body>
+</html>`;
+
   dl(`reporte_dcs_${new Date().toISOString().slice(0,10)}.html`, html, 'text/html');
   document.getElementById('modal-export').classList.remove('open');
 }
