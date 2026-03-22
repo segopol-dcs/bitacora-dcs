@@ -3160,13 +3160,13 @@ const PA_SHEET_URL = `https://docs.google.com/spreadsheets/d/${PA_SHEET_ID}/gviz
 
 let paData     = [];
 
-// Columnas del sheet (índice 0-based):
-// 0:ID 1:Hora inicio 2:Hora fin 3:Email Sol 4:Solicitante FRC 5:Crítico
-// 6:Tipo Forzado 7:SI Aprobador FRC 8:JTO Aprobador FRC 9:JTE Aprobador FRC
-// 10:TAG 11:Equipo 12:Disciplina 13:Motivo 14:Detalle 15:Estado
-// 16:Solicitante RET 17:SI Aprobador RET 18:Email Sol RET 19:JTO Aprobador RET
-// 20:JTE Aprobador RET 21:DCS Ejec FRC 22:DCS Ejec RET 23:Motivo Retiro
-// 24:Fecha Solicitud RET 25:Fecha Solicitud FRC 26:Area 27:Tratamiento
+// Columnas del sheet (índice 0-based) — pestaña Vista:
+// 0:ID 1:Email Sol 2:Solicitante FRC 3:Crítico
+// 4:Tipo Forzado 5:SI Aprobador FRC 6:JTO Aprobador FRC 7:JTE Aprobador FRC
+// 8:TAG 9:Equipo 10:Disciplina 11:Motivo 12:Detalle 13:Estado
+// 14:Solicitante RET 15:SI Aprobador RET 16:Email Sol RET 17:JTO Aprobador RET
+// 18:JTE Aprobador RET 19:DCS Ejec FRC 20:DCS Ejec RET 21:Motivo Retiro
+// 22:Fecha Solicitud RET 23:Fecha Solicitud FRC 24:Area 25:Tratamiento 26:Modificado
 
 // Color map para estados Power Apps
 const PA_ESTADO_COLORS = {
@@ -3233,33 +3233,48 @@ async function loadPowerAppsData(){
       const getFmt = i => c[i]?.f ? String(c[i].f) : get(i);
       return {
         id:            get(0),
-        hora_ini:      getFmt(1),
-        hora_fin:      getFmt(2),
-        solicitante:   get(4),
-        critico:       get(5),
-        tipo:          get(6),
-        si_aprobador:  get(7),
-        jto_aprobador: get(8),
-        jte_aprobador: get(9),
-        tag:           get(10),
-        equipo:        get(11),
-        disciplina:    get(12),
-        motivo:        get(13),
-        detalle:       get(14),
-        estado:        get(15),
-        sol_ret:       get(16),
-        si_apro_ret:   get(17),
-        jto_apro_ret:  get(19),
-        jte_apro_ret:  get(20),
-        dcs_ejec_frc:  get(21),
-        dcs_ejec_ret:  get(22),
-        motivo_ret:    get(23),
-        fecha_ret:     getFmt(24),
-        fecha_frc:     getFmt(25),
-        area:          get(26),
-        tratamiento:   get(27),
+        solicitante:   get(2),
+        critico:       get(3),
+        tipo:          get(4),
+        si_aprobador:  get(5),
+        jto_aprobador: get(6),
+        jte_aprobador: get(7),
+        tag:           get(8),
+        equipo:        get(9),
+        disciplina:    get(10),
+        motivo:        get(11),
+        detalle:       get(12),
+        estado:        get(13),
+        sol_ret:       get(14),
+        si_apro_ret:   get(15),
+        jto_apro_ret:  get(17),
+        jte_apro_ret:  get(18),
+        dcs_ejec_frc:  get(19),
+        dcs_ejec_ret:  get(20),
+        motivo_ret:    get(21),
+        fecha_ret:     getFmt(22),
+        fecha_frc:     getFmt(23),
+        area:          get(24),
+        tratamiento:   get(25),
+        modificado:    getFmt(26),
       };
     }).filter(r => r.tag || r.id);
+
+    // Deduplicar por ID — conservar el registro con fecha Modificado más reciente
+    const dedupMap = new Map();
+    paData.forEach(r => {
+      if(!r.id) return;
+      const existing = dedupMap.get(r.id);
+      if(!existing){
+        dedupMap.set(r.id, r);
+      } else {
+        // Comparar fechas de modificación — quedar con la más reciente
+        const dNew = new Date(r.modificado || 0);
+        const dOld = new Date(existing.modificado || 0);
+        if(dNew > dOld) dedupMap.set(r.id, r);
+      }
+    });
+    paData = [...dedupMap.values()];
 
     // Ordenar por ID de mayor a menor
     paData.sort((a, b) => {
