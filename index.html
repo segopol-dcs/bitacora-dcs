@@ -732,17 +732,27 @@ canvas{flex:1;min-height:0;width:100% !important}
 }
 /* ── MOVIMIENTOS TABLE ───────────────────────────────── */
 .mov-table {
-  width:100%; border-collapse:collapse;
+  width:100%; border-collapse:collapse; table-layout:fixed;
 }
+.mov-table col:nth-child(1) { width:110px }  /* Solicitante */
+.mov-table col:nth-child(2) { width:110px }  /* Autorizador */
+.mov-table col:nth-child(3) { width:110px }  /* Responsable */
+.mov-table col:nth-child(4) { width:auto   }  /* Descripción */
+.mov-table col:nth-child(5) { width:130px }  /* Área */
+.mov-table col:nth-child(6) { width:100px }  /* Equipo */
+.mov-table col:nth-child(7) { width:160px }  /* TAG */
+.mov-table col:nth-child(8) { width:90px  }  /* Disciplina */
+.mov-table col:nth-child(9) { width:70px  }  /* ACC */
 .mov-table th {
   background:#e8f0f8; color:var(--blue); font-family:var(--sans);
   font-size:9px; font-weight:700; letter-spacing:1.5px;
   padding:7px 10px; text-align:left; white-space:nowrap;
-  border-bottom:2px solid var(--blue);
+  border-bottom:2px solid var(--blue); overflow:hidden; text-overflow:ellipsis;
 }
 .mov-table td {
   padding:7px 10px; border-bottom:1px solid var(--border);
   font-size:11px; color:var(--text);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .mov-table tbody tr:hover { background:#f8fafc }
 .mov-table .td-tag  { color:var(--blue); font-weight:600; font-family:var(--mono) }
@@ -1262,6 +1272,9 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
       </div>
       <div style="overflow-x:auto">
         <table class="mov-table" id="mov-tbl-agr">
+          <colgroup>
+            <col><col><col><col><col><col><col><col><col>
+          </colgroup>
           <thead><tr>
             <th>SOLICITANTE</th><th>AUTORIZADOR</th><th>RESPONSABLE</th>
             <th>DESCRIPCIÓN DE FALLA</th><th>ÁREA</th><th>EQUIPO</th>
@@ -1281,6 +1294,9 @@ tbody tr.r-critico { outline: 1px solid rgba(217,53,53,.25); }
       </div>
       <div style="overflow-x:auto">
         <table class="mov-table" id="mov-tbl-ret">
+          <colgroup>
+            <col><col><col><col><col><col><col><col><col>
+          </colgroup>
           <thead><tr>
             <th>SOLICITANTE</th><th>AUTORIZADOR</th><th>RESPONSABLE</th>
             <th>DESCRIPCIÓN DE FALLA</th><th>ÁREA</th><th>EQUIPO</th>
