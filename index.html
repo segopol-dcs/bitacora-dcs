@@ -3324,26 +3324,27 @@ function renderPowerApps(){
     const esCritico = (r.critico||'').toLowerCase().includes('s') || r.critico === 'true' || r.critico === '1';
     const rowStyle  = esCritico ? 'background:#fff5f5' : '';
     const borderL = getPAColor(r.estado).color;
+    const tt = (v) => v ? ` title="${String(v).replace(/"/g,'&quot;')}"` : '';
     return `<tr style="${rowStyle};border-left:3px solid ${borderL}">
-      <td class="td-id">${r.id||'—'}</td>
-      <td class="td-small">${r.fecha_frc||'—'}</td>
-      <td class="td-tag">${r.tag||'—'}${esCritico?' <span style="color:#d93535;font-size:10px">🔴</span>':''}</td>
-      <td style="font-size:11px">${r.equipo||'—'}</td>
-      <td style="font-size:11px;max-width:150px" title="${r.detalle||''}">${r.motivo||'—'}</td>
-      <td style="font-size:11px">${r.area||'—'}</td>
-      <td style="color:var(--cyan);font-size:11px">${r.disciplina||'—'}</td>
-      <td class="td-small">${r.tipo||'—'}</td>
-      <td style="text-align:center">${esCritico?'<span style="color:#d93535">🔴</span>':'—'}</td>
-      <td>${getBadgePA(r.estado)}</td>
-      <td style="font-size:11px">${r.solicitante||'—'}</td>
-      <td style="font-size:11px">${r.si_aprobador||'—'}</td>
-      <td style="font-size:11px">${r.jto_aprobador||'—'}</td>
-      <td style="font-size:11px">${r.jte_aprobador||'—'}</td>
-      <td style="font-size:11px;color:var(--blue)">${r.dcs_ejec_frc||'—'}</td>
-      <td class="td-small">${r.fecha_ret||'—'}</td>
-      <td style="font-size:11px">${r.sol_ret||'—'}</td>
-      <td style="font-size:11px;color:var(--blue)">${r.dcs_ejec_ret||'—'}</td>
-      <td style="font-size:11px;max-width:120px" title="${r.tratamiento||''}">${r.tratamiento||'—'}</td>
+      <td class="td-id"${tt(r.id)}>${r.id||'—'}</td>
+      <td class="td-small"${tt(r.fecha_frc)}>${r.fecha_frc||'—'}</td>
+      <td class="td-tag"${tt(r.tag)}>${r.tag||'—'}${esCritico?' <span style="color:#d93535;font-size:10px">🔴</span>':''}</td>
+      <td${tt(r.equipo)}>${r.equipo||'—'}</td>
+      <td${tt(r.detalle||r.motivo)}>${r.motivo||'—'}</td>
+      <td${tt(r.area)}>${r.area||'—'}</td>
+      <td style="color:var(--cyan)"${tt(r.disciplina)}>${r.disciplina||'—'}</td>
+      <td${tt(r.tipo)}>${r.tipo||'—'}</td>
+      <td style="text-align:center">${esCritico?'<span style="color:#d93535" title="Equipo Crítico">🔴</span>':'—'}</td>
+      <td${tt(r.estado)}>${getBadgePA(r.estado)}</td>
+      <td${tt(r.solicitante)}>${r.solicitante||'—'}</td>
+      <td${tt(r.si_aprobador)}>${r.si_aprobador||'—'}</td>
+      <td${tt(r.jto_aprobador)}>${r.jto_aprobador||'—'}</td>
+      <td${tt(r.jte_aprobador)}>${r.jte_aprobador||'—'}</td>
+      <td style="color:var(--blue)"${tt(r.dcs_ejec_frc)}>${r.dcs_ejec_frc||'—'}</td>
+      <td${tt(r.fecha_ret)}>${r.fecha_ret||'—'}</td>
+      <td${tt(r.sol_ret)}>${r.sol_ret||'—'}</td>
+      <td style="color:var(--blue)"${tt(r.dcs_ejec_ret)}>${r.dcs_ejec_ret||'—'}</td>
+      <td${tt(r.tratamiento)}>${r.tratamiento||'—'}</td>
     </tr>`;
   }).join('');
 }
